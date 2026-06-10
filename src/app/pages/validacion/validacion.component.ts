@@ -5,11 +5,12 @@ import { ReporteService } from '../../services/reporte.service';
 import { AuthService } from '../../services/auth.service';
 import { Reporte } from '../../models/reporte.model';
 import { BadgeEstadoComponent } from '../../shared/badge-estado/badge-estado.component';
+import { EcoMapComponent } from '../../shared/eco-map/eco-map.component';
 
 @Component({
   selector: 'app-validacion',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeEstadoComponent],
+  imports: [CommonModule, FormsModule, BadgeEstadoComponent, EcoMapComponent],
   templateUrl: './validacion.component.html',
   styleUrls: ['./validacion.component.css']
 })
@@ -22,6 +23,10 @@ export class ValidacionComponent implements OnInit {
   observacion = '';
   mensajeExito = '';
   mensajeError = '';
+  modalDetalleVisible = false;
+  reporteDetalle: Reporte | null = null;
+  reportesDetalleMapa: Reporte[] = [];
+  imagenDetalleSeleccionada = '';
 
   get tituloModal(): string {
     return this.accionPendiente === 'aprobar' ? '¿Aprobar reporte?' : '¿Rechazar reporte?';
@@ -48,6 +53,7 @@ export class ValidacionComponent implements OnInit {
   }
 
   confirmarAccion(id: number, accion: 'aprobar' | 'rechazar'): void {
+    this.cerrarDetalle();
     this.reporteSeleccionadoId = id;
     this.accionPendiente = accion;
     this.observacion = '';
@@ -97,5 +103,23 @@ export class ValidacionComponent implements OnInit {
     this.reporteSeleccionadoId = null;
     this.observacion = '';
     this.mensajeError = '';
+  }
+
+  abrirDetalle(reporte: Reporte): void {
+    this.reporteDetalle = reporte;
+    this.reportesDetalleMapa = [reporte];
+    this.imagenDetalleSeleccionada = reporte.imagenes?.[0] || '/images/reporte-basura-calle.jpg';
+    this.modalDetalleVisible = true;
+  }
+
+  cerrarDetalle(): void {
+    this.modalDetalleVisible = false;
+    this.reporteDetalle = null;
+    this.reportesDetalleMapa = [];
+    this.imagenDetalleSeleccionada = '';
+  }
+
+  seleccionarImagen(imagen: string): void {
+    this.imagenDetalleSeleccionada = imagen;
   }
 }

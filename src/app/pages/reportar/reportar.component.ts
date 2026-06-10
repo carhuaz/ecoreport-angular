@@ -8,6 +8,14 @@ import { Reporte, Distrito, PrioridadReporte } from '../../models/reporte.model'
 import { ImageUploaderComponent } from '../../shared/image-uploader/image-uploader.component';
 import { EcoMapComponent, UbicacionMapa } from '../../shared/eco-map/eco-map.component';
 
+interface NivelPrioridad {
+  nombre: PrioridadReporte;
+  puntaje: number;
+  icono: string;
+  resumen: string;
+  ejemplos: string[];
+}
+
 @Component({
   selector: 'app-reportar',
   standalone: true,
@@ -26,6 +34,37 @@ export class ReportarComponent {
   longitud?: number;
   error = '';
   exito = false;
+
+  readonly nivelesPrioridad: NivelPrioridad[] = [
+    {
+      nombre: 'Baja',
+      puntaje: 2,
+      icono: 'bi-circle-fill',
+      resumen: 'Poca cantidad y sin riesgo inmediato.',
+      ejemplos: ['Una o dos bolsas', 'No bloquea el paso', 'Lejos de zonas sensibles']
+    },
+    {
+      nombre: 'Media',
+      puntaje: 6,
+      icono: 'bi-exclamation-circle-fill',
+      resumen: 'Acumulación moderada que requiere atención.',
+      ejemplos: ['Varias bolsas', 'Malos olores leves', 'Zona transitada']
+    },
+    {
+      nombre: 'Alta',
+      puntaje: 9,
+      icono: 'bi-exclamation-triangle-fill',
+      resumen: 'Problema importante con impacto en vecinos.',
+      ejemplos: ['Gran acumulación', 'Plagas o bloqueo', 'Cerca de viviendas o mercados']
+    },
+    {
+      nombre: 'Crítica',
+      puntaje: 13,
+      icono: 'bi-radioactive',
+      resumen: 'Riesgo urgente para la salud o el ambiente.',
+      ejemplos: ['Residuos peligrosos', 'Contaminación de río', 'Riesgo grave o acceso bloqueado']
+    }
+  ];
 
   constructor(
     private reporteService: ReporteService,
@@ -47,6 +86,7 @@ export class ReportarComponent {
       return;
     }
 
+    const nivelSeleccionado = this.obtenerNivelPrioridad(this.prioridad);
     const nuevoReporte: Omit<Reporte, 'id' | 'fecha' | 'historial'> = {
       titulo: this.titulo,
       descripcion: this.descripcion,
@@ -54,8 +94,10 @@ export class ReportarComponent {
       direccion: this.direccion,
       estado: 'Pendiente',
       prioridad: this.prioridad,
-      puntajePrioridad: 5,
-      criteriosPrioridad: [],
+      puntajePrioridad: nivelSeleccionado.puntaje,
+      criteriosPrioridad: [
+        `Nivel declarado por el ciudadano: ${nivelSeleccionado.resumen}`
+      ],
       imagenes: this.imagenes,
       ciudadano: this.authService.obtenerUsuarioActual()?.nombre || 'Ciudadano',
       latitud: this.latitud,
@@ -74,5 +116,14 @@ export class ReportarComponent {
   onUbicacionChange(ubicacion: UbicacionMapa): void {
     this.latitud = ubicacion.latitud;
     this.longitud = ubicacion.longitud;
+  }
+
+  seleccionarPrioridad(prioridad: PrioridadReporte): void {
+    this.prioridad = prioridad;
+  }
+
+  private obtenerNivelPrioridad(prioridad: PrioridadReporte): NivelPrioridad {
+    return this.nivelesPrioridad.find(nivel => nivel.nombre === prioridad)
+      || this.nivelesPrioridad[1];
   }
 }
