@@ -1,0 +1,240 @@
+.page-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.page-header { margin-bottom: 2rem; }
+.page-header h1 { font-size: 1.75rem; color: #1f2937; margin: 0 0 0.25rem; }
+.page-header p  { color: #6b7280; font-size: 0.9rem; margin: 0; }
+
+.tabla-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.tabla thead {
+  background: #f4f7f5;
+}
+
+.tabla th {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tabla td {
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  border-top: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+
+.tabla tbody tr:hover { background: #fafafa; }
+
+.tabla td small {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.prioridad {
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.prioridad.alta  { background: #fee2e2; color: #dc2626; }
+.prioridad.media { background: #fef3c7; color: #d97706; }
+.prioridad.baja  { background: #f3f4f6; color: #6b7280; }
+.prioridad.crítica { background: #7f1d1d; color: #fff; }
+
+.acciones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-aprobar, .btn-rechazar {
+  padding: 0.4rem 0.875rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-aprobar  { background: #dcfce7; color: #16803c; }
+.btn-rechazar { background: #fee2e2; color: #dc2626; }
+.btn-aprobar:hover, .btn-rechazar:hover { opacity: 0.75; }
+
+.empty-state {
+  text-align: center;
+  padding: 4rem;
+  color: #9ca3af;
+}
+.empty-state span { font-size: 3rem; display: block; margin-bottom: 1rem; }
+
+.historial-section {
+  margin-top: 2.5rem;
+}
+
+.historial-section h2 {
+  margin-bottom: 0;
+}
+
+.section-description {
+  margin: 0.25rem 0 1rem;
+  color: var(--color-muted);
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 90%;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 0;
+}
+
+.btn-close:hover { color: #6b7280; }
+
+.modal-body {
+  padding: 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.modal-body p {
+  margin-top: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.modal-body .form-group {
+  margin-top: 1.5rem;
+}
+
+.modal-body label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.modal-body textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.modal-body textarea:focus {
+  outline: none;
+  border-color: #00a63e;
+  box-shadow: 0 0 0 3px rgba(0, 166, 62, 0.1);
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.modal-footer button {
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-size: 0.875rem;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-secondary:hover { opacity: 0.75; }
+
+.btn-primary {
+  background: #dcfce7;
+  color: #16803c;
+}
+
+.btn-primary:hover { opacity: 0.75; }
+
+.btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-danger:hover { opacity: 0.75; }

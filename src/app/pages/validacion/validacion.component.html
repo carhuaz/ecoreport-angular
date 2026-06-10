@@ -1,0 +1,107 @@
+<div class="page-section">
+  <div class="page-header">
+    <h1>Panel de validación municipal</h1>
+    <p>Revisa y aprueba o rechaza los reportes ciudadanos pendientes.</p>
+  </div>
+
+  <div class="alert alert-success" *ngIf="mensajeExito">{{ mensajeExito }}</div>
+
+  <div *ngIf="reportes.length === 0" class="empty-state">
+    <span>✅</span>
+    <p>No hay reportes pendientes de validación.</p>
+  </div>
+
+  <div class="tabla-wrap" *ngIf="reportes.length > 0">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Título</th>
+          <th>Distrito</th>
+          <th>Prioridad</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of reportes">
+          <td>
+            <strong>{{ r.titulo }}</strong>
+            <br><small>{{ r.descripcion | slice:0:60 }}...</small>
+          </td>
+          <td>{{ r.distrito }}</td>
+          <td>
+            <span class="prioridad" [ngClass]="r.prioridad.toLowerCase()">{{ r.prioridad }}</span>
+          </td>
+          <td>{{ r.fecha }}</td>
+          <td><app-badge-estado [estado]="r.estado" /></td>
+          <td>
+            <div class="acciones">
+              <button class="btn-aprobar" (click)="confirmarAccion(r.id, 'aprobar')">✔ Aprobar</button>
+              <button class="btn-rechazar" (click)="confirmarAccion(r.id, 'rechazar')">✖ Rechazar</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="historial-section">
+    <h2>Decisiones realizadas</h2>
+    <p class="section-description">Las aprobaciones y rechazos permanecen guardados en este prototipo.</p>
+
+    <div class="tabla-wrap" *ngIf="reportesProcesados.length > 0">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Reporte</th>
+            <th>Distrito</th>
+            <th>Prioridad</th>
+            <th>Resultado</th>
+            <th>Observación</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of reportesProcesados">
+            <td><strong>{{ r.titulo }}</strong></td>
+            <td>{{ r.distrito }}</td>
+            <td>{{ r.prioridad }}</td>
+            <td><app-badge-estado [estado]="r.estado" /></td>
+            <td>{{ r.observacionValidacion || 'Sin observaciones' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal inline -->
+<div class="modal-overlay" *ngIf="modalVisible" (click)="cerrarModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ tituloModal }}</h2>
+      <button class="btn-close" (click)="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>{{ mensajeModal }}</p>
+      <div class="form-group" *ngIf="accionPendiente === 'rechazar'">
+        <label for="observacion">Observación (motivo del rechazo):</label>
+        <textarea 
+          id="observacion" 
+          [(ngModel)]="observacion" 
+          rows="3"
+          placeholder="Explica por qué se rechaza este reporte...">
+        </textarea>
+      </div>
+      <div class="alert alert-error" *ngIf="mensajeError">{{ mensajeError }}</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button 
+        [class]="accionPendiente === 'aprobar' ? 'btn-primary' : 'btn-danger'"
+        (click)="ejecutarAccion()">
+        {{ accionPendiente === 'aprobar' ? 'Aprobar' : 'Rechazar' }}
+      </button>
+    </div>
+  </div>
+</div>
