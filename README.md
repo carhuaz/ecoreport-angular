@@ -208,6 +208,19 @@ backend/
 | `usuario` | NVARCHAR(100) | Nombre del usuario que realizó la acción |
 | `observacion` | NVARCHAR(MAX) | Observación adicional |
 
+#### Tabla: `contactos`
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | INT IDENTITY PK | Identificador único |
+| `codigo` | NVARCHAR(20) | Código de atención (ej: ECO-482719) |
+| `nombre` | NVARCHAR(100) | Nombre del remitente |
+| `email` | NVARCHAR(150) | Correo del remitente |
+| `asunto` | NVARCHAR(100) | Motivo del contacto |
+| `mensaje` | NVARCHAR(500) | Contenido del mensaje |
+| `fecha` | DATETIME | Fecha y hora de envío |
+| `leido` | BIT | Estado de lectura (0 = no leído) |
+
 ### API REST
 
 **URL base:** `http://localhost:8000/api`
@@ -231,6 +244,7 @@ backend/
 | GET | `/mis-reportes` | Ciudadano | Reportes del ciudadano autenticado |
 | GET | `/cuadrilla/{id}` | ResponsableCuadrilla | Reportes asignados a una cuadrilla específica |
 | GET | `/auditoria` | Administrador | Historial de validaciones (aprobaciones/rechazos) |
+| GET | `/auditoria-evidencias` | Administrador | Reportes atendidos/verificados con evidencias, filtros por cuadrilla y estado, paginado |
 | GET | `/{id}` | Autenticado | Detalle de un reporte con historial |
 | POST | `/` | Ciudadano | Crear nuevo reporte |
 | PUT | `/{id}` | Ciudadano | Editar reporte propio |
@@ -238,7 +252,7 @@ backend/
 | POST | `/{id}/aprobar` | Validador | Aprobar reporte (Programado) |
 | POST | `/{id}/rechazar` | Validador | Rechazar reporte |
 | POST | `/{id}/corregir-prioridad` | Validador | Corregir prioridad del reporte |
-| POST | `/{id}/asignar-cuadrilla` | Administrador | Asignar cuadrilla a reporte (con límite de 2) |
+| POST | `/{id}/asignar-cuadrilla` | Administrador | Asignar cuadrilla a reporte (con límite de 3 activos por cuadrilla) |
 | POST | `/{id}/atender` | ResponsableCuadrilla | Marcar como "En atencion" |
 | POST | `/{id}/completar` | ResponsableCuadrilla | Marcar como "Atendido" |
 | POST | `/{id}/completar-con-evidencias` | ResponsableCuadrilla | Completar con imágenes de evidencia |
@@ -261,9 +275,9 @@ backend/
 #### Rutas de Usuarios (`/api/usuarios`)
 
 | Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| GET | `/` | Administrador | Listar usuarios (filtrable por término/rol) |
-| GET | `/{id}` | Administrador | Detalle de usuario |
+|---|---|---|---|---|
+| GET | `/` | Administrador | Listar usuarios. Parámetros: `page`, `page_size` (5/10/20), `termino` (busca en nombre/email), `rol` |
+| GET | `/{id}` | Administrador | Detalle de usuario por ID |
 | PUT | `/{id}/rol` | Administrador | Cambiar rol de usuario |
 | PUT | `/{id}/activar` | Administrador | Activar usuario |
 | PUT | `/{id}/desactivar` | Administrador | Desactivar usuario |
@@ -277,6 +291,12 @@ backend/
 | GET | `/por-distrito` | Administrador | Reportes agrupados por distrito |
 | GET | `/por-prioridad` | Administrador | Reportes agrupados por prioridad |
 | GET | `/cuadrillas-resumen` | Administrador | Resumen de cuadrillas con conteos |
+
+#### Rutas de Contacto (`/api/contacto`)
+
+| Método | Ruta | Roles | Descripción |
+|---|---|---|---|
+| POST | `/` | Público | Enviar mensaje de contacto. Guarda en DB, envía acuse al remitente y notificación al administrador |
 
 #### Rutas de Mapa (`/api/mapa`)
 
@@ -341,8 +361,7 @@ src/
     ├── app.config.ts           # Configuración de providers (router, http, auth init)
     ├── app.routes.ts           # Definición de rutas con lazy loading y guards
     ├── guards/
-    │   ├── auth.guard.ts       # Verifica que el usuario esté autenticado
-    │   └── role.guard.ts       # Verifica que tenga el rol requerido
+    │   └── role.guard.ts       # Verifica autenticación + rol requerido
     ├── interceptors/
     │   └── auth.interceptor.ts # Interceptor HTTP: agrega Bearer token a cada request
     ├── models/
@@ -459,9 +478,11 @@ Landing page pública con:
 - Validación: no puede cambiar su propio rol ni desactivarse a sí mismo
 
 #### 14. Admin Auditoría (`/admin/auditoria`) — Rol: Administrador
-- Tabla con historial de validaciones (aprobaciones/rechazos)
-- Columnas: Reporte, Distrito, Prioridad, Validador, Acción, Observación, Fecha
-- Paginación completa
+- Tabla con reportes atendidos/verificados y sus evidencias
+- Columnas: Reporte, Cuadrilla, Distrito, Estado, Evidencias, Fecha
+- Modal de detalle con galería de imágenes, observación de completado y datos del reporte
+- Filtros por cuadrilla y estado (Atendido/Verificado)
+- Paginación completa (5, 10, 20 por página)
 
 #### 15. Estadísticas (`/estadisticas`) — Rol: Administrador
 - Tarjeta de total de reportes
