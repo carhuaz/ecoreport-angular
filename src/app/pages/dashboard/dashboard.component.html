@@ -7,7 +7,7 @@
   <!-- KPIs -->
   <div class="kpi-grid">
     <div class="kpi-card kpi-total">
-      <span class="kpi-value">{{ total }}</span>
+      <span class="kpi-value">{{ totalReportes }}</span>
       <span class="kpi-label">Total reportes</span>
     </div>
     <div class="kpi-card kpi-pendiente">
@@ -22,6 +22,10 @@
       <span class="kpi-value">{{ atendidos }}</span>
       <span class="kpi-label">Atendidos</span>
     </div>
+    <div class="kpi-card kpi-critico">
+      <span class="kpi-value">{{ criticos }}</span>
+      <span class="kpi-label">Críticos</span>
+    </div>
   </div>
 
   <div class="mapa-section">
@@ -32,8 +36,37 @@
   <!-- Lista de reportes -->
   <div class="reportes-section">
     <h2>Reportes registrados</h2>
+
+    <div class="list-toolbar">
+      <span class="toolbar-total" *ngIf="total > 0">
+        Mostrando {{ desde }}–{{ hasta }} de <strong>{{ total }}</strong> reportes
+      </span>
+      <label class="page-size-label">
+        Por página
+        <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+          <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="paginacion" *ngIf="totalPages > 1">
+      <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
+      <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
+      <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+      <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
+      <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
+    </div>
+
     <div class="reportes-grid">
       <app-card-reporte *ngFor="let r of reportes" [reporte]="r" />
+    </div>
+
+    <div class="paginacion" *ngIf="totalPages > 1">
+      <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
+      <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
+      <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+      <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
+      <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
     </div>
   </div>
 </div>

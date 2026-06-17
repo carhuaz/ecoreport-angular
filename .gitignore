@@ -37,6 +37,17 @@ yarn-error.log
 testem.log
 /typings
 
+# Environment files
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
 # System files
 .DS_Store
 Thumbs.db
