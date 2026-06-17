@@ -18,6 +18,11 @@ export const routes: Routes = [
       import('./pages/register/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'verify',
+    loadComponent: () =>
+      import('./pages/verify/verify.component').then(m => m.VerifyComponent)
+  },
+  {
     path: 'reportes-publicos',
     loadComponent: () =>
       import('./pages/reportes-publicos/reportes-publicos.component')
@@ -60,7 +65,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/validacion/validacion.component').then(m => m.ValidacionComponent),
     canActivate: [RoleGuard],
-    data: { roles: ['Validador', 'Administrador'] }
+    data: { roles: ['Validador'] }
   },
   {
     path: 'cuadrillas',
@@ -73,6 +78,20 @@ export const routes: Routes = [
     path: 'estadisticas',
     loadComponent: () =>
       import('./pages/estadisticas/estadisticas.component').then(m => m.EstadisticasComponent),
+    canActivate: [RoleGuard],
+    data: { roles: ['Administrador'] }
+  },
+  {
+    path: 'mis-cuadrillas',
+    loadComponent: () =>
+      import('./pages/mis-cuadrillas/mis-cuadrillas.component').then(m => m.MisCuadrillasComponent),
+    canActivate: [RoleGuard],
+    data: { roles: ['ResponsableCuadrilla'] }
+  },
+  {
+    path: 'admin/auditoria',
+    loadComponent: () =>
+      import('./pages/admin-auditoria/admin-auditoria.component').then(m => m.AdminAuditoriaComponent),
     canActivate: [RoleGuard],
     data: { roles: ['Administrador'] }
   },
