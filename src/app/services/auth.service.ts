@@ -1,223 +1,143 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { map, tap, catchError } from 'rxjs/operators';
 import { Usuario } from '../models/usuario.model';
+import { environment } from '../../environments/environment';
+
+interface LoginResponse {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: string;
+  activo: boolean;
+  token: string;
+  fecha_registro?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly usuariosStorageKey = 'ecoreport_usuarios';
-  private readonly sesionStorageKey = 'ecoreport_sesion';
-  private usuarioActual: Usuario | null = null;
+  private apiUrl = environment.apiUrl;
+  private tokenKey = 'ecoreport_token';
   private usuarioSubject = new BehaviorSubject<Usuario | null>(null);
-  public usuario$: Observable<Usuario | null> = this.usuarioSubject.asObservable();
+  usuario$: Observable<Usuario | null> = this.usuarioSubject.asObservable();
 
-  private readonly usuariosIniciales: Usuario[] = [
-    { 
-      id: 1, 
-      nombre: 'Juan Pérez', 
-      email: 'ciudadano@ecoreport.pe', 
-      password: '123456', 
-      rol: 'Ciudadano',
-      activo: true,
-      fechaRegistro: '2024-01-15'
-    },
-    { 
-      id: 2, 
-      nombre: 'Ciudadano 2', 
-      email: 'ciudadano2@ecoreport.pe', 
-      password: '123456', 
-      rol: 'Ciudadano',
-      activo: true,
-      fechaRegistro: '2024-02-10'
-    },
-    { 
-      id: 3, 
-      nombre: 'María Gómez', 
-      email: 'ciudadano3@ecoreport.pe', 
-      password: '123456', 
-      rol: 'Ciudadano',
-      activo: true,
-      fechaRegistro: '2024-03-05'
-    },
-    { 
-      id: 4, 
-      nombre: 'Validador 1', 
-      email: 'validador1@ecoreport.pe', 
-      password: '123456', 
-      rol: 'Validador',
-      activo: true,
-      fechaRegistro: '2023-12-01'
-    },
-    { 
-      id: 5, 
-      nombre: 'Validador 2', 
-      email: 'validador2@ecoreport.pe', 
-      password: '123456', 
-      rol: 'Validador',
-      activo: true,
-      fechaRegistro: '2023-11-15'
-    },
-    { 
-      id: 6, 
-      nombre: 'Admin Municipal', 
-      email: 'admin@ecoreport.pe', 
-      password: '123456', 
-      rol: 'Administrador',
-      activo: true,
-      fechaRegistro: '2023-10-01'
+  constructor(private http: HttpClient) {}
+
+  init(): Promise<void> {
+    const token = this.getToken();
+    if (!token) {
+      return Promise.resolve();
     }
-  ];
-  private usuariosSimulados: Usuario[] = [];
-
-  constructor() {
-    this.usuariosSimulados = this.cargarUsuarios();
-    this.cargarSesionGuardada();
-  }
-
-  private cargarUsuarios(): Usuario[] {
-    const usuariosGuardados = localStorage.getItem(this.usuariosStorageKey);
-    if (usuariosGuardados) {
-      try {
-        const usuarios = JSON.parse(usuariosGuardados) as Usuario[];
-        if (Array.isArray(usuarios) && usuarios.length > 0) {
-          return usuarios;
+    return new Promise(resolve => {
+      this.http.get<Usuario>(`${this.apiUrl}/auth/me`).subscribe({
+        next: user => {
+          this.usuarioSubject.next(user);
+          resolve();
+        },
+        error: () => {
+          this.logout();
+          resolve();
         }
-      } catch {
-        localStorage.removeItem(this.usuariosStorageKey);
-      }
-    }
-
-    const usuarios = this.usuariosIniciales.map(usuario => ({ ...usuario }));
-    localStorage.setItem(this.usuariosStorageKey, JSON.stringify(usuarios));
-    return usuarios;
+      });
+    });
   }
 
-  private cargarSesionGuardada(): void {
-    const usuarioGuardado = localStorage.getItem(this.sesionStorageKey);
-    if (usuarioGuardado) {
-      try {
-        const sesion = JSON.parse(usuarioGuardado) as Usuario;
-        const usuario = this.usuariosSimulados.find(
-          item => item.id === sesion.id && item.activo
-        );
+  private getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
 
-        if (usuario) {
-          this.establecerSesion(usuario);
-          return;
+  login(email: string, password: string): Observable<{ ok: boolean; noVerificado?: boolean }> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password }).pipe(
+      tap(res => {
+        localStorage.setItem(this.tokenKey, res.token);
+        const usr = res as any;
+        this.usuarioSubject.next({
+          id: usr.id,
+          nombre: usr.nombre,
+          email: usr.email,
+          rol: usr.rol as Usuario['rol'],
+          activo: usr.activo,
+          fechaRegistro: usr.fecha_registro || ''
+        });
+      }),
+      map(() => ({ ok: true })),
+      catchError(err => {
+        if (err.status === 403 && err.error?.detail?.includes?.('no verificada')) {
+          return of({ ok: false, noVerificado: true });
         }
-      } catch {
-        localStorage.removeItem(this.sesionStorageKey);
-      }
-    }
-
-    this.cerrarSesionLocal();
-  }
-
-  private guardarUsuarios(): void {
-    localStorage.setItem(this.usuariosStorageKey, JSON.stringify(this.usuariosSimulados));
-  }
-
-  private obtenerUsuarioSeguro(usuario: Usuario): Usuario {
-    const { password: _, ...usuarioSeguro } = usuario;
-    return usuarioSeguro as Usuario;
-  }
-
-  private establecerSesion(usuario: Usuario): void {
-    this.usuarioActual = this.obtenerUsuarioSeguro(usuario);
-    localStorage.setItem(this.sesionStorageKey, JSON.stringify(this.usuarioActual));
-    this.usuarioSubject.next(this.usuarioActual);
-  }
-
-  private cerrarSesionLocal(): void {
-    this.usuarioActual = null;
-    localStorage.removeItem(this.sesionStorageKey);
-    this.usuarioSubject.next(null);
-  }
-
-  login(email: string, password: string): boolean {
-    const emailNormalizado = email.trim().toLowerCase();
-    const usuario = this.usuariosSimulados.find(
-      u => u.email.toLowerCase() === emailNormalizado && u.password === password && u.activo
+        return of({ ok: false });
+      })
     );
-    if (usuario) {
-      this.establecerSesion(usuario);
-      return true;
-    }
-    return false;
   }
 
   logout(): void {
-    this.cerrarSesionLocal();
+    localStorage.removeItem(this.tokenKey);
+    this.usuarioSubject.next(null);
   }
 
   estaAutenticado(): boolean {
-    return this.usuarioActual !== null;
+    return !!localStorage.getItem(this.tokenKey);
   }
 
   obtenerUsuarioActual(): Usuario | null {
-    return this.usuarioActual;
+    return this.usuarioSubject.value;
   }
 
   obtenerRutaInicial(): string {
-    switch (this.usuarioActual?.rol) {
-      case 'Validador':
-        return '/validacion';
+    switch (this.usuarioSubject.value?.rol) {
+      case 'Validador': return '/validacion';
+      case 'ResponsableCuadrilla': return '/mis-cuadrillas';
       case 'Administrador':
-      case 'Ciudadano':
-        return '/dashboard';
-      default:
-        return '/login';
+      case 'Ciudadano': return '/dashboard';
+      default: return '/login';
     }
   }
 
-  registrarUsuario(nombre: string, email: string, password: string): boolean {
-    const emailNormalizado = email.trim().toLowerCase();
-    const yaExiste = this.usuariosSimulados.some(
-      u => u.email.toLowerCase() === emailNormalizado
+  registrarUsuario(nombre: string, email: string, password: string, dni: string): Observable<boolean> {
+    return this.http.post(`${this.apiUrl}/auth/register`, { nombre, email, password, dni }).pipe(
+      map(() => true),
+      catchError(() => of(false))
     );
-    if (yaExiste) {
-      return false;
-    }
-
-    const nuevoUsuario: Usuario = {
-      id: Math.max(...this.usuariosSimulados.map(u => u.id), 0) + 1,
-      nombre: nombre.trim(),
-      email: emailNormalizado,
-      password,
-      rol: 'Ciudadano',
-      activo: true,
-      fechaRegistro: new Date().toISOString().split('T')[0]
-    };
-    this.usuariosSimulados.push(nuevoUsuario);
-    this.guardarUsuarios();
-    return true;
   }
 
-  obtenerTodosLosUsuarios(): Usuario[] {
-    return this.usuariosSimulados.map(u => this.obtenerUsuarioSeguro(u));
+  verificarCodigo(email: string, codigo: string): Observable<boolean> {
+    return this.http.post(`${this.apiUrl}/auth/verify`, { email, codigo }).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
   }
 
-  cambiarRolUsuario(idUsuario: number, nuevoRol: 'Ciudadano' | 'Validador' | 'Administrador'): boolean {
-    const usuario = this.usuariosSimulados.find(u => u.id === idUsuario);
-    if (usuario) {
-      usuario.rol = nuevoRol;
-      this.guardarUsuarios();
-
-      if (this.usuarioActual?.id === idUsuario) {
-        this.establecerSesion(usuario);
-      }
-      return true;
-    }
-    return false;
+  reenviarCodigo(email: string): Observable<boolean> {
+    return this.http.post(`${this.apiUrl}/auth/reenviar-codigo`, { email, codigo: '' }).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
   }
 
-  cambiarEstadoUsuario(idUsuario: number, activo: boolean): boolean {
-    const usuario = this.usuariosSimulados.find(u => u.id === idUsuario);
-    if (!usuario || (this.usuarioActual?.id === idUsuario && !activo)) {
-      return false;
-    }
+  obtenerTodosLosUsuarios(): Observable<Usuario[]> {
+    return this.http.get<Usuario[]>(`${this.apiUrl}/usuarios`);
+  }
 
-    usuario.activo = activo;
-    this.guardarUsuarios();
-    return true;
+  obtenerUsuariosPaginados(page: number, pageSize: number, termino?: string, rol?: string): Observable<{ items: Usuario[]; total: number; page: number; page_size: number; total_pages: number }> {
+    let params = new HttpParams().set('page', page).set('page_size', pageSize);
+    if (termino) params = params.set('termino', termino);
+    if (rol) params = params.set('rol', rol);
+    return this.http.get<any>(`${this.apiUrl}/usuarios`, { params });
+  }
+
+  cambiarRolUsuario(idUsuario: number, nuevoRol: string): Observable<boolean> {
+    return this.http.put(`${this.apiUrl}/usuarios/${idUsuario}/rol`, { rol: nuevoRol }).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
+  }
+
+  cambiarEstadoUsuario(idUsuario: number, activo: boolean): Observable<boolean> {
+    const accion = activo ? 'activar' : 'desactivar';
+    return this.http.put(`${this.apiUrl}/usuarios/${idUsuario}/${accion}`, {}).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
   }
 }

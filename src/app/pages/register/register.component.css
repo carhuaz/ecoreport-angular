@@ -47,6 +47,7 @@
   color: #374151;
   margin-bottom: 0.4rem;
 }
+.req { color: #dc2626; }
 
 .form-group input,
 .form-group select {

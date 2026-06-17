@@ -94,6 +94,13 @@
       </app-image-uploader>
     </div>
 
+    <div class="form-group checkbox-group">
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="anonimo" />
+        <span>Enviar como anónimo (no se mostrará tu nombre en el reporte)</span>
+      </label>
+    </div>
+
     <button class="btn-submit" (click)="enviar()">Enviar reporte</button>
   </div>
 </div>

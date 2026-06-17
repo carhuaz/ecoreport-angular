@@ -16,24 +16,13 @@
     <!-- Filtros -->
     <div class="filters-section">
       <div class="filter-group">
-        <label for="filtroNombre">Filtrar por nombre:</label>
+        <label for="filtroNombre">Buscar nombre o correo:</label>
         <input
           id="filtroNombre"
           type="text"
           [(ngModel)]="filtroNombre"
           (keyup)="onFiltroChange()"
-          placeholder="Buscar nombre..."
-        />
-      </div>
-
-      <div class="filter-group">
-        <label for="filtroEmail">Filtrar por correo:</label>
-        <input
-          id="filtroEmail"
-          type="email"
-          [(ngModel)]="filtroEmail"
-          (keyup)="onFiltroChange()"
-          placeholder="Buscar correo..."
+          placeholder="Buscar..."
         />
       </div>
 
@@ -47,15 +36,27 @@
           <option value="Administrador">Administrador</option>
         </select>
       </div>
+
+      <div class="filter-group">
+        <label for="pageSize">Por página</label>
+        <select id="pageSize" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+          <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- Tabla de usuarios -->
     <div class="usuarios-section">
       <div class="section-header">
-        <h2>{{ usuariosFiltrados.length }} Usuario(s)</h2>
+        <h2>{{ total }} Usuario(s)</h2>
+        <span class="toolbar-total" *ngIf="total > 0">
+          Mostrando {{ desde }}–{{ hasta }}
+        </span>
       </div>
 
-      <div class="table-wrap" *ngIf="usuariosFiltrados.length > 0">
+      <app-paginacion [page]="page" [totalPages]="totalPages" (pageChange)="irPagina($event)" />
+
+      <div class="table-wrap" *ngIf="usuarios.length > 0">
       <table class="usuarios-table">
         <thead>
           <tr>
@@ -69,8 +70,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let usuario of usuariosFiltrados; let i = index">
-            <td>{{ i + 1 }}</td>
+          <tr *ngFor="let usuario of usuarios; let i = index">
+            <td>{{ desde + i }}</td>
             <td>{{ usuario.nombre }}</td>
             <td>{{ usuario.email }}</td>
             <td>
@@ -107,7 +108,9 @@
       </table>
       </div>
 
-      <div class="empty-state" *ngIf="usuariosFiltrados.length === 0">
+      <app-paginacion [page]="page" [totalPages]="totalPages" (pageChange)="irPagina($event)" />
+
+      <div class="empty-state" *ngIf="usuarios.length === 0">
         <p>No hay usuarios que coincidan con los filtros.</p>
       </div>
     </div>

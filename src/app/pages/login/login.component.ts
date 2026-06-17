@@ -16,8 +16,13 @@ export class LoginComponent {
   password = '';
   error = '';
   exito = false;
+  cargando = false;
 
   constructor(private authService: AuthService, private router: Router) {}
+
+  get noVerificado(): boolean {
+    return this.error === 'no_verificado';
+  }
 
   ingresar(): void {
     this.error = '';
@@ -25,12 +30,21 @@ export class LoginComponent {
       this.error = 'Completa todos los campos.';
       return;
     }
-    const ok = this.authService.login(this.email, this.password);
-    if (ok) {
-      this.exito = true;
-      setTimeout(() => this.router.navigate([this.authService.obtenerRutaInicial()]), 700);
-    } else {
-      this.error = 'Correo o contraseña incorrectos, o el usuario está inactivo.';
-    }
+    this.cargando = true;
+    this.authService.login(this.email, this.password).subscribe(res => {
+      this.cargando = false;
+      if (res.ok) {
+        this.exito = true;
+        setTimeout(() => this.router.navigate([this.authService.obtenerRutaInicial()]), 700);
+      } else if (res.noVerificado) {
+        this.error = 'no_verificado';
+      } else {
+        this.error = 'Correo o contraseña incorrectos, o el usuario está inactivo.';
+      }
+    });
+  }
+
+  irAVerificar(): void {
+    this.router.navigate(['/verify', { email: this.email }]);
   }
 }

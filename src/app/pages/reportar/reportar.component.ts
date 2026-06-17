@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ReporteService } from '../../services/reporte.service';
 import { AuthService } from '../../services/auth.service';
-import { Reporte, Distrito, PrioridadReporte } from '../../models/reporte.model';
+import { Distrito, PrioridadReporte } from '../../models/reporte.model';
 import { ImageUploaderComponent } from '../../shared/image-uploader/image-uploader.component';
 import { EcoMapComponent, UbicacionMapa } from '../../shared/eco-map/eco-map.component';
 
@@ -32,8 +32,10 @@ export class ReportarComponent {
   imagenes: string[] = [];
   latitud?: number;
   longitud?: number;
+  anonimo = false;
   error = '';
   exito = false;
+  cargando = false;
 
   readonly nivelesPrioridad: NivelPrioridad[] = [
     {
@@ -72,6 +74,10 @@ export class ReportarComponent {
     private router: Router
   ) {}
 
+  private scrollArriba(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   enviar(): void {
     this.error = '';
     if (
@@ -83,30 +89,42 @@ export class ReportarComponent {
       this.longitud === undefined
     ) {
       this.error = 'Completa los campos, agrega una imagen y selecciona la ubicación en el mapa.';
+      this.scrollArriba();
       return;
     }
 
     const nivelSeleccionado = this.obtenerNivelPrioridad(this.prioridad);
-    const nuevoReporte: Omit<Reporte, 'id' | 'fecha' | 'historial'> = {
+    const nuevoReporte = {
       titulo: this.titulo,
       descripcion: this.descripcion,
       distrito: this.distrito,
       direccion: this.direccion,
-      estado: 'Pendiente',
+      estado: 'Pendiente' as const,
       prioridad: this.prioridad,
       puntajePrioridad: nivelSeleccionado.puntaje,
       criteriosPrioridad: [
         `Nivel declarado por el ciudadano: ${nivelSeleccionado.resumen}`
       ],
       imagenes: this.imagenes,
-      ciudadano: this.authService.obtenerUsuarioActual()?.nombre || 'Ciudadano',
+      ciudadano: this.anonimo ? 'Anónimo' : (this.authService.obtenerUsuarioActual()?.nombre || 'Ciudadano'),
       latitud: this.latitud,
-      longitud: this.longitud
+      longitud: this.longitud,
+      anonimo: this.anonimo
     };
 
-    this.reporteService.agregarReporte(nuevoReporte);
-    this.exito = true;
-    setTimeout(() => this.router.navigate(['/mis-reportes']), 1500);
+    this.cargando = true;
+    this.reporteService.agregarReporte(nuevoReporte).subscribe({
+      next: () => {
+        this.cargando = false;
+        this.exito = true;
+        setTimeout(() => this.router.navigate(['/mis-reportes']), 1500);
+      },
+      error: (err) => {
+        this.cargando = false;
+        this.error = err.error?.detail || 'Error al enviar el reporte. Intenta nuevamente.';
+        this.scrollArriba();
+      }
+    });
   }
 
   onImagenesChange(imagenes: string[]): void {

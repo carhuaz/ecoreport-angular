@@ -15,17 +15,6 @@ export class CuadrillaService {
     return this.http.get<Cuadrilla[]>(`${this.apiUrl}/cuadrillas`);
   }
 
-  obtenerCuadrillaPorId(id: number): Observable<Cuadrilla | undefined> {
-    return this.http.get<Cuadrilla>(`${this.apiUrl}/cuadrillas/${id}`).pipe(
-      map(c => c),
-      catchError(() => of(undefined))
-    );
-  }
-
-  obtenerCuadrillasDisponibles(): Observable<Cuadrilla[]> {
-    return this.http.get<Cuadrilla[]>(`${this.apiUrl}/cuadrillas/disponibles`);
-  }
-
   obtenerMisCuadrillas(): Observable<Cuadrilla[]> {
     return this.http.get<Cuadrilla[]>(`${this.apiUrl}/cuadrillas/mis-cuadrillas`);
   }

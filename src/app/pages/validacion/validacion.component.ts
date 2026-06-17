@@ -6,11 +6,12 @@ import { AuthService } from '../../services/auth.service';
 import { Reporte, Distrito } from '../../models/reporte.model';
 import { BadgeEstadoComponent } from '../../shared/badge-estado/badge-estado.component';
 import { EcoMapComponent } from '../../shared/eco-map/eco-map.component';
+import { PaginacionComponent } from '../../shared/paginacion/paginacion.component';
 
 @Component({
   selector: 'app-validacion',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeEstadoComponent, EcoMapComponent],
+  imports: [CommonModule, FormsModule, BadgeEstadoComponent, EcoMapComponent, PaginacionComponent],
   templateUrl: './validacion.component.html',
   styleUrls: ['./validacion.component.css']
 })
@@ -24,7 +25,7 @@ export class ValidacionComponent implements OnInit {
   totalPages = 0;
   filtroDistrito: Distrito | '' = '';
 
-  readonly pageSizes = [10, 20, 50, 100];
+  readonly pageSizes = [5, 10, 20];
 
   modalVisible = false;
   accionPendiente: 'aprobar' | 'rechazar' | null = null;

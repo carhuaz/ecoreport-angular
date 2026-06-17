@@ -8,6 +8,8 @@ import { Reporte } from '../../models/reporte.model';
 import { Cuadrilla } from '../../models/cuadrilla.model';
 import { Usuario } from '../../models/usuario.model';
 import { BadgeEstadoComponent } from '../../shared/badge-estado/badge-estado.component';
+import { ModalConfirmacionComponent } from '../../shared/modal-confirmacion/modal-confirmacion.component';
+import { PaginacionComponent } from '../../shared/paginacion/paginacion.component';
 
 interface ModalCuadrilla {
   abierto: boolean;
@@ -23,7 +25,7 @@ interface ModalCuadrilla {
 @Component({
   selector: 'app-cuadrillas',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeEstadoComponent],
+  imports: [CommonModule, FormsModule, BadgeEstadoComponent, ModalConfirmacionComponent, PaginacionComponent],
   templateUrl: './cuadrillas.component.html',
   styleUrls: ['./cuadrillas.component.css']
 })
@@ -36,13 +38,14 @@ export class CuadrillasComponent implements OnInit {
   mensajeError: string | null = null;
 
   modal: ModalCuadrilla = { abierto: false, editando: false, nombre: '', responsable: '', distrito: 'Huancayo', zona_asignada: '' };
+  cuadrillaAEliminar: Cuadrilla | null = null;
 
   page = 1;
   pageSize = 10;
   total = 0;
   totalPages = 0;
 
-  readonly pageSizes = [5, 10, 20, 50];
+  readonly pageSizes = [5, 10, 20];
 
   get desde(): number { return (this.page - 1) * this.pageSize + 1; }
   get hasta(): number { return Math.min(this.page * this.pageSize, this.total); }
@@ -166,16 +169,30 @@ export class CuadrillasComponent implements OnInit {
   }
 
   eliminarCuadrilla(c: Cuadrilla): void {
-    if (!confirm(`¿Eliminar "${c.nombre}"?`)) return;
-    this.cuadrillaService.eliminarCuadrilla(c.id).subscribe(ok => {
+    this.cuadrillaAEliminar = c;
+  }
+
+  confirmarEliminacion(): void {
+    if (!this.cuadrillaAEliminar) return;
+    this.cuadrillaService.eliminarCuadrilla(this.cuadrillaAEliminar.id).subscribe(ok => {
       if (!ok) {
         this.mensajeError = 'No se puede eliminar: tiene reportes activos asignados';
         setTimeout(() => this.mensajeError = null, 4000);
+        this.cuadrillaAEliminar = null;
         return;
       }
       this.mensajeExito = 'Cuadrilla eliminada';
+      this.cuadrillaAEliminar = null;
       this.cargar();
       setTimeout(() => this.mensajeExito = null, 3000);
     });
+  }
+
+  cancelarEliminacion(): void {
+    this.cuadrillaAEliminar = null;
+  }
+
+  get mensajeEliminar(): string {
+    return `¿Estás seguro de eliminar la cuadrilla "${this.cuadrillaAEliminar?.nombre || ''}"?`;
   }
 }

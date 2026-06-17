@@ -21,13 +21,7 @@
     </label>
   </div>
 
-  <div class="paginacion" *ngIf="totalPages > 1">
-    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
-    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
-    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
-    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
-    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
-  </div>
+  <app-paginacion [page]="page" [totalPages]="totalPages" (pageChange)="irPagina($event)" />
 
   <div *ngIf="reportesAprobados.length === 0" class="empty-state">
     <span>✅</span>
@@ -70,13 +64,7 @@
     </table>
   </div>
 
-  <div class="paginacion" *ngIf="totalPages > 1">
-    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
-    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
-    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
-    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
-    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
-  </div>
+  <app-paginacion [page]="page" [totalPages]="totalPages" (pageChange)="irPagina($event)" />
 
   <div class="section-header">
     <h2>Cuadrillas registradas</h2>
@@ -149,3 +137,13 @@
     </div>
   </div>
 </div>
+
+<app-modal-confirmacion
+  [visible]="!!cuadrillaAEliminar"
+  titulo="Eliminar cuadrilla"
+  [mensaje]="mensajeEliminar"
+  textoConfirmar="Eliminar"
+  tipoBtnConfirmar="peligro"
+  (confirmar)="confirmarEliminacion()"
+  (cancelar)="cancelarEliminacion()">
+</app-modal-confirmacion>
