@@ -5,11 +5,12 @@ import { RouterLink } from '@angular/router';
 import { Distrito, EstadoReporte, Reporte } from '../../models/reporte.model';
 import { ReporteService } from '../../services/reporte.service';
 import { BadgeEstadoComponent } from '../../shared/badge-estado/badge-estado.component';
+import { PaginacionComponent } from '../../shared/paginacion/paginacion.component';
 
 @Component({
   selector: 'app-reportes-publicos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BadgeEstadoComponent],
+  imports: [CommonModule, FormsModule, RouterLink, BadgeEstadoComponent, PaginacionComponent],
   templateUrl: './reportes-publicos.component.html',
   styleUrls: ['./reportes-publicos.component.css']
 })
@@ -24,7 +25,7 @@ export class ReportesPublicosComponent implements OnInit {
   total = 0;
   totalPages = 0;
 
-  readonly pageSizes = [6, 12, 24, 48];
+  readonly pageSizes = [5, 10, 20];
 
   get desde(): number { return (this.page - 1) * this.pageSize + 1; }
   get hasta(): number { return Math.min(this.page * this.pageSize, this.total); }

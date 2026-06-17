@@ -3,14 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ReporteService } from '../../services/reporte.service';
-import { AuthService } from '../../services/auth.service';
 import { Reporte } from '../../models/reporte.model';
 import { CardReporteComponent } from '../../shared/card-reporte/card-reporte.component';
+import { PaginacionComponent } from '../../shared/paginacion/paginacion.component';
 
 @Component({
   selector: 'app-mis-reportes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CardReporteComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CardReporteComponent, PaginacionComponent],
   templateUrl: './mis-reportes.component.html',
   styleUrls: ['./mis-reportes.component.css']
 })
@@ -21,14 +21,13 @@ export class MisReportesComponent implements OnInit {
   total = 0;
   totalPages = 0;
 
-  readonly pageSizes = [5, 10, 20, 50];
+  readonly pageSizes = [5, 10, 20];
 
   get desde(): number { return (this.page - 1) * this.pageSize + 1; }
   get hasta(): number { return Math.min(this.page * this.pageSize, this.total); }
 
   constructor(
-    private reporteService: ReporteService,
-    private authService: AuthService
+    private reporteService: ReporteService
   ) {}
 
   ngOnInit(): void {
@@ -36,8 +35,7 @@ export class MisReportesComponent implements OnInit {
   }
 
   cargar(): void {
-    const nombre = this.authService.obtenerUsuarioActual()?.nombre || '';
-    this.reporteService.obtenerReportesPorCiudadano(nombre, this.page, this.pageSize).subscribe(res => {
+    this.reporteService.obtenerReportesPorCiudadano(this.page, this.pageSize).subscribe(res => {
       this.reportes = res.items;
       this.total = res.total;
       this.totalPages = res.total_pages;

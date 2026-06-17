@@ -74,6 +74,10 @@ export class ReportarComponent {
     private router: Router
   ) {}
 
+  private scrollArriba(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   enviar(): void {
     this.error = '';
     if (
@@ -85,6 +89,7 @@ export class ReportarComponent {
       this.longitud === undefined
     ) {
       this.error = 'Completa los campos, agrega una imagen y selecciona la ubicación en el mapa.';
+      this.scrollArriba();
       return;
     }
 
@@ -108,10 +113,17 @@ export class ReportarComponent {
     };
 
     this.cargando = true;
-    this.reporteService.agregarReporte(nuevoReporte).subscribe(() => {
-      this.cargando = false;
-      this.exito = true;
-      setTimeout(() => this.router.navigate(['/mis-reportes']), 1500);
+    this.reporteService.agregarReporte(nuevoReporte).subscribe({
+      next: () => {
+        this.cargando = false;
+        this.exito = true;
+        setTimeout(() => this.router.navigate(['/mis-reportes']), 1500);
+      },
+      error: (err) => {
+        this.cargando = false;
+        this.error = err.error?.detail || 'Error al enviar el reporte. Intenta nuevamente.';
+        this.scrollArriba();
+      }
     });
   }
 

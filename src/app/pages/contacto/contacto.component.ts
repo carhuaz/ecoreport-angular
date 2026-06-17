@@ -1,15 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
-interface MensajeContacto {
-  codigo: string;
-  nombre: string;
-  email: string;
-  asunto: string;
-  mensaje: string;
-  fecha: string;
-}
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-contacto',
@@ -19,12 +12,15 @@ interface MensajeContacto {
   styleUrls: ['./contacto.component.css']
 })
 export class ContactoComponent {
+  private apiUrl = environment.apiUrl;
   nombre = '';
   email = '';
   asunto = 'Consulta general';
   mensaje = '';
   error = '';
   codigoAtencion = '';
+
+  constructor(private http: HttpClient) {}
 
   enviar(): void {
     this.error = '';
@@ -40,31 +36,22 @@ export class ContactoComponent {
       return;
     }
 
-    const codigo = `ECO-${Date.now().toString().slice(-6)}`;
-    const nuevoMensaje: MensajeContacto = {
-      codigo,
+    this.http.post<{ codigo: string }>(`${this.apiUrl}/contacto`, {
       nombre: this.nombre.trim(),
       email: this.email.trim().toLowerCase(),
       asunto: this.asunto,
-      mensaje: this.mensaje.trim(),
-      fecha: new Date().toISOString()
-    };
-    const mensajes = this.obtenerMensajes();
-    mensajes.push(nuevoMensaje);
-    localStorage.setItem('ecoreport_contactos', JSON.stringify(mensajes));
-
-    this.codigoAtencion = codigo;
-    this.nombre = '';
-    this.email = '';
-    this.asunto = 'Consulta general';
-    this.mensaje = '';
-  }
-
-  private obtenerMensajes(): MensajeContacto[] {
-    try {
-      return JSON.parse(localStorage.getItem('ecoreport_contactos') || '[]') as MensajeContacto[];
-    } catch {
-      return [];
-    }
+      mensaje: this.mensaje.trim()
+    }).subscribe({
+      next: res => {
+        this.codigoAtencion = res.codigo;
+        this.nombre = '';
+        this.email = '';
+        this.asunto = 'Consulta general';
+        this.mensaje = '';
+      },
+      error: err => {
+        this.error = err.error?.detail || 'Error al enviar el mensaje. Intenta de nuevo.';
+      }
+    });
   }
 }

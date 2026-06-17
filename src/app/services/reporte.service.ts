@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { Reporte, EstadoReporte, PrioridadReporte, Distrito } from '../models/reporte.model';
+import { Reporte } from '../models/reporte.model';
 import { Paginacion } from '../models/paginacion.model';
 import { environment } from '../../environments/environment';
 
@@ -69,21 +69,7 @@ export class ReporteService {
     return this.paginada(`${this.apiUrl}/reportes/publicos`, params);
   }
 
-  obtenerReportePorId(id: number): Observable<Reporte | undefined> {
-    return this.http.get<any>(`${this.apiUrl}/reportes/${id}`).pipe(
-      map(r => this.mapReporte(r))
-    );
-  }
-
-  obtenerReportesPorEstado(estado: EstadoReporte, page = 1, page_size = 100): Observable<Paginacion<Reporte>> {
-    return this.obtenerReportes({ estado, page, page_size });
-  }
-
-  obtenerReportesPorDistrito(distrito: Distrito, page = 1, page_size = 100): Observable<Paginacion<Reporte>> {
-    return this.obtenerReportes({ distrito, page, page_size });
-  }
-
-  obtenerReportesPorCiudadano(_ciudadano: string, page = 1, page_size = 20): Observable<Paginacion<Reporte>> {
+  obtenerReportesPorCiudadano(page = 1, page_size = 20): Observable<Paginacion<Reporte>> {
     let params = new HttpParams().set('page', page).set('page_size', page_size);
     return this.paginada(`${this.apiUrl}/reportes/mis-reportes`, params);
   }
@@ -119,26 +105,8 @@ export class ReporteService {
     );
   }
 
-  corregirPrioridad(id: number, prioridad: PrioridadReporte, observacion: string, _validador: string): Observable<boolean> {
-    return this.http.post(`${this.apiUrl}/reportes/${id}/corregir-prioridad`, { prioridad, observacion }).pipe(
-      map(() => true)
-    );
-  }
-
-  asignarCuadrilla(id: number, _cuadrilla: string, _usuario: string): Observable<boolean> {
-    return this.http.post(`${this.apiUrl}/reportes/${id}/asignar-cuadrilla`, { cuadrilla_id: +_cuadrilla }).pipe(
-      map(() => true)
-    );
-  }
-
   marcarEnAtencion(id: number, _usuario: string): Observable<boolean> {
     return this.http.post(`${this.apiUrl}/reportes/${id}/atender`, {}).pipe(
-      map(() => true)
-    );
-  }
-
-  marcarAtendido(id: number, _usuario: string): Observable<boolean> {
-    return this.http.post(`${this.apiUrl}/reportes/${id}/completar`, {}).pipe(
       map(() => true)
     );
   }
@@ -150,21 +118,17 @@ export class ReporteService {
     );
   }
 
-  marcarVerificado(id: number, _usuario: string): Observable<boolean> {
-    return this.http.post(`${this.apiUrl}/reportes/${id}/verificar`, {}).pipe(
-      map(() => true)
-    );
-  }
-
   obtenerReportesPorCuadrilla(cuadrillaId: number, estado?: string, page = 1, pageSize = 50): Observable<Paginacion<Reporte>> {
     let params = new HttpParams().set('page', page).set('page_size', pageSize);
     if (estado) params = params.set('estado', estado);
     return this.paginada(`${this.apiUrl}/reportes/cuadrilla/${cuadrillaId}`, params);
   }
 
-  obtenerAuditoriaValidaciones(page = 1, pageSize = 50): Observable<Paginacion<any>> {
+  obtenerAuditoriaEvidencias(page = 1, pageSize = 20, cuadrillaId?: number, estado?: string): Observable<Paginacion<any>> {
     let params = new HttpParams().set('page', page).set('page_size', pageSize);
-    return this.http.get<any>(`${this.apiUrl}/reportes/auditoria`, { params }).pipe(
+    if (cuadrillaId) params = params.set('cuadrilla_id', cuadrillaId);
+    if (estado) params = params.set('estado', estado);
+    return this.http.get<any>(`${this.apiUrl}/reportes/auditoria-evidencias`, { params }).pipe(
       map(res => ({
         items: res.items,
         total: res.total,
@@ -177,36 +141,5 @@ export class ReporteService {
 
   obtenerResumenEstadisticas(): Observable<{ total_reportes: number; por_estado: { estado: string; cantidad: number }[]; por_distrito: { distrito: string; cantidad: number }[]; por_prioridad: { prioridad: string; cantidad: number }[] }> {
     return this.http.get<any>(`${this.apiUrl}/estadisticas/resumen`);
-  }
-
-  calcularPrioridadAsistida(respuestas: Record<string, boolean | number>): { prioridad: PrioridadReporte; puntaje: number; criterios: string[] } {
-    let puntaje = 0;
-    const criterios: string[] = [];
-
-    if (respuestas['cantidad'] === 1) {
-      puntaje += 1;
-      criterios.push('Poca basura');
-    } else if (respuestas['cantidad'] === 2) {
-      puntaje += 2;
-      criterios.push('Varias bolsas acumuladas');
-    } else if (respuestas['cantidad'] === 3) {
-      puntaje += 3;
-      criterios.push('Gran acumulación de basura o desmonte');
-    }
-
-    if (respuestas['malosOlores']) { puntaje += 2; criterios.push('Malos olores'); }
-    if (respuestas['animales']) { puntaje += 3; criterios.push('Presencia de animales, insectos o roedores'); }
-    if (respuestas['cercania']) { puntaje += 3; criterios.push('Cercanía a viviendas, colegios, mercados, restaurantes o zonas concurridas'); }
-    if (respuestas['agua']) { puntaje += 3; criterios.push('Cercanía a río, canal, acequia o área verde'); }
-    if (respuestas['bloqueo']) { puntaje += 3; criterios.push('Bloqueo de vereda, pista o zona de tránsito'); }
-    if (respuestas['peligroso']) { puntaje += 4; criterios.push('Residuos peligrosos o sospechosos'); }
-    if (respuestas['imagenClara']) { puntaje += 1; criterios.push('Imagen clara como evidencia'); }
-
-    let prioridad: PrioridadReporte = 'Baja';
-    if (puntaje >= 12) prioridad = 'Crítica';
-    else if (puntaje >= 8) prioridad = 'Alta';
-    else if (puntaje >= 4) prioridad = 'Media';
-
-    return { prioridad, puntaje, criterios };
   }
 }

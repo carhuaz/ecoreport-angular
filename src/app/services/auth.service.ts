@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
 import { Usuario } from '../models/usuario.model';
@@ -12,6 +12,7 @@ interface LoginResponse {
   rol: string;
   activo: boolean;
   token: string;
+  fecha_registro?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -50,13 +51,14 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password }).pipe(
       tap(res => {
         localStorage.setItem(this.tokenKey, res.token);
+        const usr = res as any;
         this.usuarioSubject.next({
-          id: res.id,
-          nombre: res.nombre,
-          email: res.email,
-          rol: res.rol as Usuario['rol'],
-          activo: res.activo,
-          fechaRegistro: ''
+          id: usr.id,
+          nombre: usr.nombre,
+          email: usr.email,
+          rol: usr.rol as Usuario['rol'],
+          activo: usr.activo,
+          fechaRegistro: usr.fecha_registro || ''
         });
       }),
       map(() => ({ ok: true })),
@@ -115,6 +117,13 @@ export class AuthService {
 
   obtenerTodosLosUsuarios(): Observable<Usuario[]> {
     return this.http.get<Usuario[]>(`${this.apiUrl}/usuarios`);
+  }
+
+  obtenerUsuariosPaginados(page: number, pageSize: number, termino?: string, rol?: string): Observable<{ items: Usuario[]; total: number; page: number; page_size: number; total_pages: number }> {
+    let params = new HttpParams().set('page', page).set('page_size', pageSize);
+    if (termino) params = params.set('termino', termino);
+    if (rol) params = params.set('rol', rol);
+    return this.http.get<any>(`${this.apiUrl}/usuarios`, { params });
   }
 
   cambiarRolUsuario(idUsuario: number, nuevoRol: string): Observable<boolean> {
