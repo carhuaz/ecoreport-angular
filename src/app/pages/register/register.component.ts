@@ -14,18 +14,25 @@ import { AuthService } from '../../services/auth.service';
 export class RegisterComponent {
   nombre = '';
   email = '';
+  dni = '';
   password = '';
   confirmPassword = '';
   error = '';
   exito = false;
+  cargando = false;
 
   constructor(private router: Router, private authService: AuthService) {}
 
   registrar(): void {
     this.error = '';
-    
-    if (!this.nombre || !this.email || !this.password || !this.confirmPassword) {
+
+    if (!this.nombre || !this.email || !this.dni || !this.password || !this.confirmPassword) {
       this.error = 'Completa todos los campos.';
+      return;
+    }
+
+    if (this.dni.length !== 8 || !/^\d{8}$/.test(this.dni)) {
+      this.error = 'El DNI debe tener exactamente 8 dígitos numéricos.';
       return;
     }
 
@@ -39,15 +46,15 @@ export class RegisterComponent {
       return;
     }
 
-    // Registrar usuario automáticamente como Ciudadano
-    const registroExitoso = this.authService.registrarUsuario(this.nombre, this.email, this.password);
-    
-    if (!registroExitoso) {
-      this.error = 'Este correo electrónico ya está registrado.';
-      return;
-    }
-
-    this.exito = true;
-    setTimeout(() => this.router.navigate(['/login']), 1500);
+    this.cargando = true;
+    this.authService.registrarUsuario(this.nombre, this.email, this.password, this.dni).subscribe(ok => {
+      this.cargando = false;
+      if (!ok) {
+        this.error = 'Este correo electrónico o DNI ya está registrado.';
+        return;
+      }
+      this.exito = true;
+      setTimeout(() => this.router.navigate(['/verify', { email: this.email }]), 1500);
+    });
   }
 }

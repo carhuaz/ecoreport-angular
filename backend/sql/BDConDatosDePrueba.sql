@@ -1,4 +1,26 @@
 -- ============================================================
+-- EcoReportDB - SCRIPT EJECUTABLE EN UNA SOLA VEZ
+-- Borra la base de datos si existe, la vuelve a crear,
+-- crea tablas y carga datos de prueba.
+-- ============================================================
+
+USE master;
+GO
+
+IF DB_ID(N'EcoReportDB') IS NOT NULL
+BEGIN
+    ALTER DATABASE EcoReportDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE EcoReportDB;
+END
+GO
+
+CREATE DATABASE EcoReportDB;
+GO
+
+USE EcoReportDB;
+GO
+
+-- ============================================================
 -- EcoReport DB - Script TODO EN UNO (esquema + datos)
 -- Ejecutar en: EcoReportDB (o la BD que uses)
 -- ============================================================
@@ -153,3 +175,18 @@ SET IDENTITY_INSERT reportes OFF;
 -- HISTORIAL (1 entrada por reporte)
 INSERT INTO historial_reportes (reporte_id, accion, usuario)
 SELECT id, 'Reporte creado', 'Ciudadano' FROM reportes;
+
+
+-- ============================================================
+-- 3. VERIFICACIÓN RÁPIDA
+-- ============================================================
+SELECT 'usuarios' AS tabla, COUNT(*) AS total FROM usuarios
+UNION ALL
+SELECT 'cuadrillas', COUNT(*) FROM cuadrillas
+UNION ALL
+SELECT 'reportes', COUNT(*) FROM reportes
+UNION ALL
+SELECT 'historial_reportes', COUNT(*) FROM historial_reportes;
+GO
+
+SELECT * FROM usuarios

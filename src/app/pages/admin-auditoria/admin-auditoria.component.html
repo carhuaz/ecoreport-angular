@@ -1,0 +1,66 @@
+<div class="page-section">
+  <div class="page-header">
+    <h1>Auditoría de validaciones</h1>
+    <p>Revisa las aprobaciones y rechazos realizados por los validadores.</p>
+  </div>
+
+  <div class="toolbar">
+    <span class="toolbar-total" *ngIf="total > 0">
+      Mostrando {{ desde }}–{{ hasta }} de <strong>{{ total }}</strong> validaciones
+    </span>
+  </div>
+
+  <div class="paginacion" *ngIf="totalPages > 1">
+    <button (click)="irPagina(1)" [disabled]="page === 1">««</button>
+    <button (click)="irPagina(page - 1)" [disabled]="page === 1">«</button>
+    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+    <button (click)="irPagina(page + 1)" [disabled]="page === totalPages">»</button>
+    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages">»»</button>
+  </div>
+
+  <div *ngIf="validaciones.length === 0" class="empty-state">
+    <span>🔍</span>
+    <p>No hay validaciones registradas.</p>
+  </div>
+
+  <div class="tabla-wrap" *ngIf="validaciones.length > 0">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Reporte</th>
+          <th>Distrito</th>
+          <th>Prioridad</th>
+          <th>Validador</th>
+          <th>Acción</th>
+          <th>Observación</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let v of validaciones">
+          <td><strong>{{ v.titulo }}</strong></td>
+          <td>{{ v.distrito }}</td>
+          <td>
+            <span class="prioridad" [ngClass]="v.prioridad.toLowerCase()">{{ v.prioridad }}</span>
+          </td>
+          <td>{{ v.validador_nombre || 'Validador #' + v.usuario_id }}</td>
+          <td>
+            <span class="accion-badge" [class.aprobado]="v.accion === 'Aprobado'" [class.rechazado]="v.accion === 'Rechazado'">
+              {{ v.accion }}
+            </span>
+          </td>
+          <td>{{ v.observacion || '—' }}</td>
+          <td>{{ v.fecha }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="paginacion" *ngIf="totalPages > 1">
+    <button (click)="irPagina(1)" [disabled]="page === 1">««</button>
+    <button (click)="irPagina(page - 1)" [disabled]="page === 1">«</button>
+    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+    <button (click)="irPagina(page + 1)" [disabled]="page === totalPages">»</button>
+    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages">»»</button>
+  </div>
+</div>
