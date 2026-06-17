@@ -52,7 +52,7 @@ def register(req: RegisterRequest, background_tasks: BackgroundTasks):
     codigo = generar_otp()
 
     user_id = execute_returning_id(
-        "INSERT INTO usuarios (nombre, email, password, dni, rol, activo, codigo_verificacion, esta_verificado) VALUES (?, ?, ?, ?, 'Ciudadano', 1, ?, 0)",
+        "INSERT INTO usuarios (nombre, email, password, dni, rol, activo, codigo_verificacion, esta_verificado) OUTPUT INSERTED.id VALUES (?, ?, ?, ?, 'Ciudadano', 1, ?, 0)",
         (req.nombre.strip(), email, hashed, req.dni, hash_password(codigo))
     )
 

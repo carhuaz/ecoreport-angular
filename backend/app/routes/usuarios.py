@@ -1,41 +1,42 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 from ..database import fetch_all, fetch_one, execute
 from ..schemas.usuario import CambiarRolRequest
 from ..middleware.auth import require_roles
+from ..utils import paginar
 
 router = APIRouter(prefix="/api/usuarios", tags=["Usuarios"])
 
 
 @router.get("")
-def listar_usuarios(termino: Optional[str] = None, rol: Optional[str] = None,
-                    user=Depends(require_roles("Administrador"))):
-    sql = """
-        SELECT id, nombre, email, dni, rol, activo,
-               FORMAT(fecha_registro, 'yyyy-MM-dd') as fecha_registro
-        FROM usuarios WHERE 1=1
-    """
+def listar_usuarios(
+    termino: Optional[str] = None,
+    rol: Optional[str] = None,
+    page: Optional[int] = Query(None, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    user=Depends(require_roles("Administrador"))
+):
+    where = "WHERE 1=1"
     params = []
+
     if termino:
-        sql += " AND (LOWER(nombre) LIKE ? OR LOWER(email) LIKE ?)"
+        where += " AND (LOWER(nombre) LIKE ? OR LOWER(email) LIKE ?)"
         params.extend([f"%{termino.lower()}%", f"%{termino.lower()}%"])
     if rol:
-        sql += " AND rol = ?"
+        where += " AND rol = ?"
         params.append(rol)
-    sql += " ORDER BY id"
 
-    return fetch_all(sql, tuple(params))
+    columns = """
+        id, nombre, email, dni, rol, activo,
+        FORMAT(fecha_registro, 'yyyy-MM-dd') as fecha_registro
+    """
+    data_sql = f"SELECT {columns} FROM usuarios {where} ORDER BY id"
 
+    if page:
+        count_sql = f"SELECT COUNT(*) as total FROM usuarios {where}"
+        return paginar(count_sql, data_sql, params, page, page_size)
 
-@router.get("/{usuario_id}")
-def obtener_usuario(usuario_id: int, user=Depends(require_roles("Administrador"))):
-    user = fetch_one(
-        "SELECT id, nombre, email, dni, rol, activo, FORMAT(fecha_registro, 'yyyy-MM-dd') as fecha_registro FROM usuarios WHERE id = ?",
-        (usuario_id,)
-    )
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return user
+    return fetch_all(data_sql, tuple(params))
 
 
 @router.put("/{usuario_id}/rol")
