@@ -64,6 +64,5 @@ def execute_returning_id(query: str, params: tuple = ()):
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(query, params)
-        cursor.execute("SELECT @@IDENTITY AS id")
         row = cursor.fetchone()
         return int(row[0]) if row else None

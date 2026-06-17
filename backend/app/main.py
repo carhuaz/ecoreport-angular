@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import auth, reportes, usuarios, cuadrillas, estadisticas, mapa
+from .routes import auth, reportes, usuarios, cuadrillas, estadisticas, contacto
 
 app = FastAPI(
     title="EcoReport API",
@@ -24,7 +24,7 @@ app.include_router(reportes.router)
 app.include_router(usuarios.router)
 app.include_router(cuadrillas.router)
 app.include_router(estadisticas.router)
-app.include_router(mapa.router)
+app.include_router(contacto.router)
 
 
 @app.get("/api/health")
