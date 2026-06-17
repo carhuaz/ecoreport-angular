@@ -8,16 +8,22 @@
 </section>
 
 <section class="reportes-page">
-  <div class="summary">
-    <div><strong>{{ reportes.length }}</strong><span>Reportes aprobados publicados</span></div>
-    <div><strong>{{ reportesFiltrados.length }}</strong><span>Resultados visibles</span></div>
-    <div><strong>{{ reportes.length - reportesFiltrados.length }}</strong><span>Fuera del filtro</span></div>
+  <div class="list-toolbar" *ngIf="total > 0">
+    <span class="toolbar-total">
+      Mostrando {{ desde }}–{{ hasta }} de <strong>{{ total }}</strong> reportes públicos
+    </span>
+    <label class="page-size-label">
+      Por página
+      <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+        <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+      </select>
+    </label>
   </div>
 
   <div class="filters">
     <label>
       Distrito
-      <select [(ngModel)]="distrito" (change)="aplicarFiltros()">
+      <select [(ngModel)]="distritoFiltro" (change)="onFiltroChange()">
         <option value="">Todos</option>
         <option value="Huancayo">Huancayo</option>
         <option value="El Tambo">El Tambo</option>
@@ -27,7 +33,7 @@
 
     <label>
       Estado
-      <select [(ngModel)]="estado" (change)="aplicarFiltros()">
+      <select [(ngModel)]="estadoFiltro" (change)="onFiltroChange()">
         <option value="">Todos</option>
         <option value="Aprobado">Aprobado</option>
         <option value="Programado">Programado</option>
@@ -36,6 +42,14 @@
         <option value="Verificado">Verificado</option>
       </select>
     </label>
+  </div>
+
+  <div class="paginacion" *ngIf="totalPages > 1">
+    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
+    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
+    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
+    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
   </div>
 
   <div class="report-grid">
@@ -61,6 +75,14 @@
         <small>{{ reporte.direccion }}</small>
       </div>
     </article>
+  </div>
+
+  <div class="paginacion" *ngIf="totalPages > 1">
+    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
+    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
+    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
+    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
   </div>
 
   <div class="empty" *ngIf="reportesFiltrados.length === 0">
