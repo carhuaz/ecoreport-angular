@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from ..database import fetch_all, fetch_one, execute
 from ..middleware.auth import require_roles, get_current_user_role
+from ..utils import MAX_ASIGNACIONES_POR_CUADRILLA, calcular_estado_cuadrilla
 
 
 class CuadrillaCreate(BaseModel):
@@ -74,19 +75,6 @@ def mis_cuadrillas(user=Depends(require_roles("ResponsableCuadrilla"))):
     return [_serializar(r) for r in rows]
 
 
-@router.get("/{cuadrilla_id}")
-def obtener_cuadrilla(cuadrilla_id: int, user=Depends(get_current_user_role)):
-    cuadrilla = fetch_one("""
-        SELECT c.*, u.nombre as responsable_nombre
-        FROM cuadrillas c
-        LEFT JOIN usuarios u ON c.responsable_id = u.id
-        WHERE c.id = ?
-    """, (cuadrilla_id,))
-    if not cuadrilla:
-        raise HTTPException(status_code=404, detail="Cuadrilla no encontrada")
-    return _serializar(cuadrilla)
-
-
 @router.post("")
 def crear_cuadrilla(req: CuadrillaCreate, user=Depends(require_roles("Administrador"))):
     if not req.nombre or not req.responsable or not req.distrito:
@@ -138,13 +126,20 @@ def eliminar_cuadrilla(cuadrilla_id: int, user=Depends(require_roles("Administra
 
 @router.post("/{cuadrilla_id}/asignar-revision")
 def asignar_a_cuadrilla(cuadrilla_id: int, reporte_id: int, user=Depends(require_roles("Administrador"))):
-    cuadrilla = fetch_one("SELECT id, nombre FROM cuadrillas WHERE id = ?", (cuadrilla_id,))
+    cuadrilla = fetch_one("SELECT id, nombre, estado FROM cuadrillas WHERE id = ?", (cuadrilla_id,))
     if not cuadrilla:
         raise HTTPException(status_code=404, detail="Cuadrilla no encontrada")
 
     reporte = fetch_one("SELECT id FROM reportes WHERE id = ?", (reporte_id,))
     if not reporte:
         raise HTTPException(status_code=404, detail="Reporte no encontrado")
+
+    activos = fetch_one(
+        "SELECT COUNT(*) as total FROM reportes WHERE cuadrilla_id = ? AND estado IN ('Programado', 'En atención')",
+        (cuadrilla_id,)
+    )
+    if activos and activos["total"] >= MAX_ASIGNACIONES_POR_CUADRILLA:
+        raise HTTPException(status_code=400, detail=f"La cuadrilla ya tiene {MAX_ASIGNACIONES_POR_CUADRILLA} asignaciones activas como máximo")
 
     execute("UPDATE reportes SET estado = 'Programado', cuadrilla_id = ? WHERE id = ?",
             (cuadrilla_id, reporte_id))
@@ -153,7 +148,9 @@ def asignar_a_cuadrilla(cuadrilla_id: int, reporte_id: int, user=Depends(require
         (reporte_id, "Admin", f"Asignado a {cuadrilla['nombre']}")
     )
 
-    if cuadrilla["estado"] == "Disponible":
-        execute("UPDATE cuadrillas SET estado = 'En ruta' WHERE id = ?", (cuadrilla_id,))
+    activos_total = (activos["total"] if activos else 0) + 1
+    nuevo_estado = calcular_estado_cuadrilla(activos_total)
+    if nuevo_estado != cuadrilla["estado"]:
+        execute("UPDATE cuadrillas SET estado = ? WHERE id = ?", (nuevo_estado, cuadrilla_id))
 
     return {"mensaje": f"Reporte asignado a {cuadrilla['nombre']}"}
