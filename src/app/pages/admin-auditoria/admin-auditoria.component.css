@@ -1,0 +1,56 @@
+.page-section { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+.page-header { margin-bottom: 2rem; }
+.page-header h1 { font-size: 1.75rem; color: #1f2937; margin: 0 0 0.25rem; }
+.page-header p  { color: #6b7280; font-size: 0.9rem; margin: 0; }
+
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;
+}
+.toolbar-total { font-size: 0.85rem; color: #6b7280; }
+.toolbar-total strong { color: #1f2937; }
+
+.empty-state { text-align: center; padding: 3rem; color: #9ca3af; }
+.empty-state span { font-size: 3rem; display: block; margin-bottom: 1rem; }
+
+.tabla-wrap {
+  overflow-x: auto; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.tabla { width: 100%; border-collapse: collapse; background: #fff; }
+.tabla thead { background: #f4f7f5; }
+.tabla th {
+  padding: 0.85rem 1rem; text-align: left; font-size: 0.8rem;
+  font-weight: 700; color: #374151; text-transform: uppercase;
+}
+.tabla td {
+  padding: 1rem; font-size: 0.875rem; color: #1f2937;
+  border-top: 1px solid #f3f4f6; vertical-align: middle;
+}
+
+.prioridad {
+  padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;
+}
+.prioridad.alta  { background: #fee2e2; color: #dc2626; }
+.prioridad.media { background: #fef3c7; color: #d97706; }
+.prioridad.baja  { background: #f3f4f6; color: #6b7280; }
+.prioridad.crítica { background: #f3e8ff; color: #7c3aed; }
+
+.accion-badge {
+  padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+}
+.accion-badge.aprobado { background: #dcfce7; color: #16803c; }
+.accion-badge.rechazado { background: #fee2e2; color: #dc2626; }
+
+.paginacion {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.35rem; padding: 1rem 0;
+}
+.paginacion button {
+  min-width: 36px; height: 36px; padding: 0 0.6rem;
+  border: 1px solid #e5e7eb; border-radius: 6px; background: #fff;
+  color: #374151; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.paginacion button:hover:not(:disabled) { background: #00a63e; color: #fff; border-color: #00a63e; }
+.paginacion button.active { background: #00a63e; color: #fff; border-color: #00a63e; }
+.paginacion button:disabled { opacity: 0.35; cursor: default; }

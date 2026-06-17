@@ -37,8 +37,10 @@ export class AdminUsuariosComponent implements OnInit {
   }
 
   cargarUsuarios(): void {
-    this.usuarios = this.usuarioService.obtenerUsuarios();
-    this.aplicarFiltros();
+    this.usuarioService.obtenerUsuarios().subscribe(data => {
+      this.usuarios = data;
+      this.aplicarFiltros();
+    });
   }
 
   aplicarFiltros(): void {
@@ -86,7 +88,6 @@ export class AdminUsuariosComponent implements OnInit {
   confirmarCambiarRol(): void {
     if (!this.usuarioSeleccionado) return;
 
-    // Advertencia si se va a hacer administrador
     if (this.rolSeleccionadoModal === 'Administrador') {
       this.mostrarConfirmacion = true;
       return;
@@ -98,34 +99,35 @@ export class AdminUsuariosComponent implements OnInit {
   realizarCambioRol(): void {
     if (!this.usuarioSeleccionado) return;
 
-    const cambioExitoso = this.usuarioService.cambiarRolUsuario(
+    this.usuarioService.cambiarRolUsuario(
       this.usuarioSeleccionado.id,
       this.rolSeleccionadoModal
-    );
-
-    this.mostrarConfirmacion = false;
-    this.cerrarModal();
-    this.cargarUsuarios();
-    this.mostrarMensaje(
-      cambioExitoso ? 'Rol actualizado correctamente.' : 'No se pudo actualizar el rol.',
-      !cambioExitoso
-    );
+    ).subscribe(cambioExitoso => {
+      this.mostrarConfirmacion = false;
+      this.cerrarModal();
+      this.cargarUsuarios();
+      this.mostrarMensaje(
+        cambioExitoso ? 'Rol actualizado correctamente.' : 'No se pudo actualizar el rol.',
+        !cambioExitoso
+      );
+    });
   }
 
   cambiarEstado(usuario: Usuario): void {
-    const resultado = usuario.activo
+    const accion$ = usuario.activo
       ? this.usuarioService.desactivarUsuario(usuario.id)
       : this.usuarioService.activarUsuario(usuario.id);
 
-    if (resultado) {
-      this.mostrarMensaje(
-        usuario.activo ? 'Usuario desactivado correctamente.' : 'Usuario activado correctamente.'
-      );
-    } else {
-      this.mostrarMensaje('No puedes desactivar el usuario de la sesión actual.', true);
-    }
-
-    this.cargarUsuarios();
+    accion$.subscribe(resultado => {
+      if (resultado) {
+        this.mostrarMensaje(
+          usuario.activo ? 'Usuario desactivado correctamente.' : 'Usuario activado correctamente.'
+        );
+      } else {
+        this.mostrarMensaje('No puedes desactivar el usuario de la sesión actual.', true);
+      }
+      this.cargarUsuarios();
+    });
   }
 
   esUsuarioActual(usuario: Usuario): boolean {
@@ -142,6 +144,7 @@ export class AdminUsuariosComponent implements OnInit {
     switch (rol) {
       case 'Administrador': return 'role-admin';
       case 'Validador': return 'role-validador';
+      case 'ResponsableCuadrilla': return 'role-cuadrilla';
       case 'Ciudadano': return 'role-ciudadano';
       default: return '';
     }
