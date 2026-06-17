@@ -19,10 +19,12 @@ export class MapaAmbientalComponent implements OnInit {
   constructor(private reporteService: ReporteService) {}
 
   ngOnInit(): void {
-    this.reportes = this.reporteService.obtenerReportesPublicos();
-    this.reporteActivo = this.reportes.find(
-      reporte => reporte.latitud !== undefined && reporte.longitud !== undefined
-    ) || null;
+    this.reporteService.obtenerReportesPublicos({ page_size: 200 }).subscribe(res => {
+      this.reportes = res.items;
+      this.reporteActivo = this.reportes.find(
+        reporte => reporte.latitud !== undefined && reporte.longitud !== undefined
+      ) || null;
+    });
   }
 
   seleccionarReporte(reporte: Reporte): void {
@@ -38,5 +40,4 @@ export class MapaAmbientalComponent implements OnInit {
     }
     return 'proceso';
   }
-
 }

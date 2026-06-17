@@ -42,6 +42,7 @@
 .kpi-pendiente { background: #fee2e2; }
 .kpi-programado{ background: #fef3c7; }
 .kpi-atendido  { background: #dcfce7; }
+.kpi-critico   { background: #f3e8ff; }
 
 .kpi-value {
   font-size: 2.5rem;
