@@ -16,24 +16,6 @@ class ReporteCreate(BaseModel):
     anonimo: Optional[bool] = False
 
 
-class ReporteUpdate(BaseModel):
-    titulo: Optional[str] = None
-    descripcion: Optional[str] = None
-    distrito: Optional[str] = None
-    direccion: Optional[str] = None
-    latitud: Optional[float] = None
-    longitud: Optional[float] = None
-
-
-class PrioridadRequest(BaseModel):
-    prioridad: str
-    observacion: str
-
-
-class AsignarCuadrillaRequest(BaseModel):
-    cuadrilla_id: int
-
-
 class ValidacionRequest(BaseModel):
     observacion: str
 

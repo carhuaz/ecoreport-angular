@@ -1,4 +1,26 @@
 -- ============================================================
+-- EcoReportDB - SCRIPT EJECUTABLE EN UNA SOLA VEZ
+-- Borra la base de datos si existe, la vuelve a crear,
+-- crea tablas y carga datos de prueba.
+-- ============================================================
+
+USE master;
+GO
+
+IF DB_ID(N'EcoReportDB') IS NOT NULL
+BEGIN
+    ALTER DATABASE EcoReportDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE EcoReportDB;
+END
+GO
+
+CREATE DATABASE EcoReportDB;
+GO
+
+USE EcoReportDB;
+GO
+
+-- ============================================================
 -- EcoReport DB - Script TODO EN UNO (esquema + datos)
 -- Ejecutar en: EcoReportDB (o la BD que uses)
 -- ============================================================
@@ -69,6 +91,17 @@ CREATE TABLE historial_reportes (
     observacion NVARCHAR(MAX)
 );
 
+CREATE TABLE contactos (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    codigo NVARCHAR(20) NOT NULL,
+    nombre NVARCHAR(100) NOT NULL,
+    email NVARCHAR(150) NOT NULL,
+    asunto NVARCHAR(100) NOT NULL,
+    mensaje NVARCHAR(500) NOT NULL,
+    fecha DATETIME NOT NULL DEFAULT GETDATE(),
+    leido BIT NOT NULL DEFAULT 0
+);
+
 -- ============================================================
 -- 2. DATOS DE PRUEBA (SEED)
 -- ============================================================
@@ -96,8 +129,8 @@ INSERT INTO cuadrillas (id, nombre, responsable, responsable_id, estado, zona_as
 VALUES
 (1, 'Cuadrilla A', 'Carlos López',   7, 'Disponible', 'Norte - Av. Principal',       'Huancayo'),
 (2, 'Cuadrilla B', 'Rosa Huamán',    8, 'En ruta',    'Sur - Jr. Cusco',             'Huancayo'),
-(3, 'Cuadrilla C', 'Pedro Sánchez',  7, 'Disponible', 'Centro - Mercado Modelo',     'El Tambo'),
-(4, 'Cuadrilla D', 'Lucía Torres',   8, 'Disponible', 'Este - Parque Infantil',      'Chilca');
+(3, 'Cuadrilla C', 'Carlos López',  7, 'Disponible', 'Centro - Mercado Modelo',     'El Tambo'),
+(4, 'Cuadrilla D', 'Rosa Huamán',   8, 'Disponible', 'Este - Parque Infantil',      'Chilca');
 
 SET IDENTITY_INSERT cuadrillas OFF;
 
@@ -153,3 +186,18 @@ SET IDENTITY_INSERT reportes OFF;
 -- HISTORIAL (1 entrada por reporte)
 INSERT INTO historial_reportes (reporte_id, accion, usuario)
 SELECT id, 'Reporte creado', 'Ciudadano' FROM reportes;
+
+
+-- ============================================================
+-- 3. VERIFICACIÓN RÁPIDA
+-- ============================================================
+SELECT 'usuarios' AS tabla, COUNT(*) AS total FROM usuarios
+UNION ALL
+SELECT 'cuadrillas', COUNT(*) FROM cuadrillas
+UNION ALL
+SELECT 'reportes', COUNT(*) FROM reportes
+UNION ALL
+SELECT 'historial_reportes', COUNT(*) FROM historial_reportes;
+GO
+
+SELECT * FROM usuarios

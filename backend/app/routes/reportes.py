@@ -1,13 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 from ..database import fetch_all, fetch_one, execute
-from ..schemas.reporte import ReporteCreate, ReporteUpdate, PrioridadRequest, AsignarCuadrillaRequest, ValidacionRequest, CompletarRequest
+from ..schemas.reporte import ReporteCreate, ValidacionRequest, CompletarRequest
 from ..middleware.auth import get_current_user_id, get_current_user_role, require_roles
+from ..utils import paginar, MAX_ASIGNACIONES_POR_CUADRILLA, calcular_estado_cuadrilla
 import json
 
 router = APIRouter(prefix="/api/reportes", tags=["Reportes"])
-
-MAX_ASIGNACIONES_POR_CUADRILLA = 2
 
 
 def _serializar_reporte(row: dict) -> dict:
@@ -32,20 +31,6 @@ def _adjuntar_historial(reportes: list[dict]) -> list[dict]:
     return reportes
 
 
-def _paginar(sql_count: str, sql_data: str, params: list, page: int, page_size: int) -> dict:
-    total = fetch_one(sql_count, tuple(params))["total"]
-    offset = (page - 1) * page_size
-    sql_paginado = f"{sql_data} OFFSET {offset} ROWS FETCH NEXT {page_size} ROWS ONLY"
-    rows = fetch_all(sql_paginado, tuple(params))
-    return {
-        "items": rows,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": max(1, (total + page_size - 1) // page_size)
-    }
-
-
 def _actualizar_estado_cuadrilla(reporte_id: int):
     reporte = fetch_one("SELECT cuadrilla_id FROM reportes WHERE id = ?", (reporte_id,))
     if not reporte or not reporte["cuadrilla_id"]:
@@ -55,10 +40,8 @@ def _actualizar_estado_cuadrilla(reporte_id: int):
         "SELECT COUNT(*) as total FROM reportes WHERE cuadrilla_id = ? AND estado IN ('Programado', 'En atención')",
         (cuadrilla_id,)
     )
-    if activos and activos["total"] > 0:
-        execute("UPDATE cuadrillas SET estado = 'Ocupada' WHERE id = ?", (cuadrilla_id,))
-    else:
-        execute("UPDATE cuadrillas SET estado = 'Disponible' WHERE id = ?", (cuadrilla_id,))
+    nuevo_estado = calcular_estado_cuadrilla(activos["total"] if activos else 0)
+    execute("UPDATE cuadrillas SET estado = ? WHERE id = ?", (nuevo_estado, cuadrilla_id))
 
 
 @router.get("")
@@ -92,7 +75,7 @@ def listar_reportes(
         ORDER BY r.fecha DESC
     """
 
-    result = _paginar(count_sql, data_sql, params, page, page_size)
+    result = paginar(count_sql, data_sql, params, page, page_size)
     result["items"] = _adjuntar_historial([_serializar_reporte(r) for r in result["items"]])
     return result
 
@@ -123,7 +106,7 @@ def listar_reportes_publicos(
         ORDER BY r.fecha DESC
     """
 
-    result = _paginar(count_sql, data_sql, params, page, page_size)
+    result = paginar(count_sql, data_sql, params, page, page_size)
     result["items"] = _adjuntar_historial([_serializar_reporte(r) for r in result["items"]])
     return result
 
@@ -147,7 +130,7 @@ def mis_reportes(
         ORDER BY r.fecha DESC
     """
 
-    result = _paginar(count_sql, data_sql, params, page, page_size)
+    result = paginar(count_sql, data_sql, params, page, page_size)
     result["items"] = _adjuntar_historial([_serializar_reporte(r) for r in result["items"]])
     return result
 
@@ -182,8 +165,56 @@ def reportes_por_cuadrilla(
         ORDER BY r.fecha DESC
     """
 
-    result = _paginar(count_sql, data_sql, params, page, page_size)
+    result = paginar(count_sql, data_sql, params, page, page_size)
     result["items"] = _adjuntar_historial([_serializar_reporte(r) for r in result["items"]])
+    return result
+
+
+@router.get("/auditoria-evidencias")
+def auditoria_evidencias(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    cuadrilla_id: Optional[int] = None,
+    estado: Optional[str] = None,
+    user=Depends(require_roles("Administrador"))
+):
+    where = "WHERE r.estado IN ('Atendido', 'Verificado')"
+    params: list = []
+
+    if cuadrilla_id:
+        where += " AND r.cuadrilla_id = ?"
+        params.append(cuadrilla_id)
+    if estado:
+        where += " AND r.estado = ?"
+        params.append(estado)
+
+    count_sql = f"""
+        SELECT COUNT(*) as total
+        FROM reportes r
+        {where}
+    """
+    data_sql = f"""
+        SELECT r.id, r.titulo, r.descripcion, r.distrito, r.estado, r.imagenes, r.fecha,
+               FORMAT(r.fecha, 'yyyy-MM-dd') as fecha_str,
+               c.id as cuadrilla_id, c.nombre as cuadrilla_nombre,
+               (SELECT TOP 1 observacion FROM historial_reportes
+                WHERE reporte_id = r.id AND accion = 'Atendido con evidencias'
+                ORDER BY fecha DESC) as observacion_completado
+        FROM reportes r
+        LEFT JOIN cuadrillas c ON r.cuadrilla_id = c.id
+        {where}
+        ORDER BY r.fecha DESC
+    """
+
+    result = paginar(count_sql, data_sql, params, page, page_size)
+
+    for item in result["items"]:
+        item["fecha"] = item.pop("fecha_str")
+        if item.get("imagenes") and isinstance(item["imagenes"], str):
+            item["imagenes"] = json.loads(item["imagenes"])
+        if item.get("observacion_completado") is None:
+            item["observacion_completado"] = ""
+
     return result
 
 
@@ -200,7 +231,7 @@ def auditoria_validaciones(
     """
     data_sql = f"""
         SELECT h.id, h.reporte_id, h.fecha, h.accion, h.usuario as usuario_id, h.observacion,
-               r.titulo, r.distrito, r.prioridad, r.estado as estado_reporte,
+               r.titulo, r.distrito, r.prioridad, r.estado as estado_reporte, r.imagenes,
                FORMAT(h.fecha, 'yyyy-MM-dd') as fecha_str,
                u.nombre as validador_nombre
         FROM historial_reportes h
@@ -210,33 +241,14 @@ def auditoria_validaciones(
         ORDER BY h.fecha DESC
     """
 
-    result = _paginar(count_sql, data_sql, [], page, page_size)
+    result = paginar(count_sql, data_sql, [], page, page_size)
 
     for item in result["items"]:
         item["fecha"] = item.pop("fecha_str")
+        if item.get("imagenes") and isinstance(item["imagenes"], str):
+            item["imagenes"] = json.loads(item["imagenes"])
 
     return result
-
-
-@router.get("/{reporte_id}")
-def obtener_reporte(reporte_id: int):
-    row = fetch_one("""
-        SELECT r.*, u.nombre as ciudadano_nombre,
-               FORMAT(r.fecha, 'yyyy-MM-dd') as fecha
-        FROM reportes r
-        LEFT JOIN usuarios u ON r.ciudadano_id = u.id
-        WHERE r.id = ?
-    """, (reporte_id,))
-    if not row:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
-    row = _serializar_reporte(row)
-
-    historial = fetch_all(
-        "SELECT id, FORMAT(fecha, 'yyyy-MM-dd') as fecha, accion, usuario, observacion FROM historial_reportes WHERE reporte_id = ? ORDER BY fecha ASC",
-        (reporte_id,)
-    )
-    row["historial"] = historial
-    return row
 
 
 @router.post("")
@@ -244,7 +256,7 @@ def crear_reporte(req: ReporteCreate, user_id: int = Depends(get_current_user_id
     imagenes_json = json.dumps(req.imagenes or [], ensure_ascii=False)
     criterios_json = json.dumps(req.criterios_prioridad or [], ensure_ascii=False) if hasattr(req, 'criterios_prioridad') else '[]'
 
-    ciudadano_id_val = None if req.anonimo else user_id
+    ciudadano_id_val = user_id
     nombre_usuario = "Anónimo" if req.anonimo else (fetch_one("SELECT nombre FROM usuarios WHERE id = ?", (user_id,)) or {}).get("nombre", "Ciudadano")
 
     reporte_id = execute(
@@ -260,38 +272,6 @@ def crear_reporte(req: ReporteCreate, user_id: int = Depends(get_current_user_id
     )
 
     return {"mensaje": "Reporte creado exitosamente", "id": reporte_id}
-
-
-@router.put("/{reporte_id}")
-def actualizar_reporte(reporte_id: int, req: ReporteUpdate, user_id: int = Depends(get_current_user_id)):
-    reporte = fetch_one("SELECT id, ciudadano_id FROM reportes WHERE id = ?", (reporte_id,))
-    if not reporte:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
-    if reporte["ciudadano_id"] != user_id:
-        raise HTTPException(status_code=403, detail="No puedes editar este reporte")
-
-    updates = {}
-    for field in ("titulo", "descripcion", "distrito", "direccion", "latitud", "longitud"):
-        val = getattr(req, field, None)
-        if val is not None:
-            updates[field] = val
-
-    if updates:
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        params = list(updates.values()) + [reporte_id]
-        execute(f"UPDATE reportes SET {set_clause} WHERE id = ?", tuple(params))
-
-    return {"mensaje": "Reporte actualizado"}
-
-
-@router.delete("/{reporte_id}")
-def eliminar_reporte(reporte_id: int, user=Depends(require_roles("Administrador"))):
-    reporte = fetch_one("SELECT id FROM reportes WHERE id = ?", (reporte_id,))
-    if not reporte:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
-    execute("DELETE FROM historial_reportes WHERE reporte_id = ?", (reporte_id,))
-    execute("DELETE FROM reportes WHERE id = ?", (reporte_id,))
-    return {"mensaje": "Reporte eliminado"}
 
 
 # --- Transiciones de estado ---
@@ -323,54 +303,6 @@ def rechazar_reporte(reporte_id: int, req: ValidacionRequest, user=Depends(requi
     return {"mensaje": "Reporte rechazado"}
 
 
-@router.post("/{reporte_id}/corregir-prioridad")
-def corregir_prioridad(reporte_id: int, req: PrioridadRequest, user=Depends(require_roles("Validador"))):
-    reporte = fetch_one("SELECT id FROM reportes WHERE id = ?", (reporte_id,))
-    if not reporte:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
-    execute(
-        "UPDATE reportes SET prioridad = ?, prioridad_corregida = 1, observacion_prioridad = ? WHERE id = ?",
-        (req.prioridad, req.observacion, reporte_id)
-    )
-    execute(
-        "INSERT INTO historial_reportes (reporte_id, accion, usuario, observacion) VALUES (?, 'Prioridad corregida', ?, ?)",
-        (reporte_id, user["id"], req.observacion)
-    )
-    return {"mensaje": "Prioridad corregida"}
-
-
-@router.post("/{reporte_id}/asignar-cuadrilla")
-def asignar_cuadrilla(reporte_id: int, req: AsignarCuadrillaRequest, user=Depends(require_roles("Administrador"))):
-    reporte = fetch_one("SELECT id FROM reportes WHERE id = ?", (reporte_id,))
-    if not reporte:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
-
-    cuadrilla = fetch_one("SELECT id, nombre, estado FROM cuadrillas WHERE id = ?", (req.cuadrilla_id,))
-    if not cuadrilla:
-        raise HTTPException(status_code=404, detail="Cuadrilla no encontrada")
-
-    activos = fetch_one(
-        "SELECT COUNT(*) as total FROM reportes WHERE cuadrilla_id = ? AND estado IN ('Programado', 'En atención')",
-        (req.cuadrilla_id,)
-    )
-    if activos and activos["total"] >= MAX_ASIGNACIONES_POR_CUADRILLA:
-        raise HTTPException(status_code=400, detail=f"La cuadrilla ya tiene {MAX_ASIGNACIONES_POR_CUADRILLA} asignaciones activas como máximo")
-
-    execute("UPDATE reportes SET estado = 'Programado', cuadrilla_id = ? WHERE id = ?",
-            (req.cuadrilla_id, reporte_id))
-    execute(
-        "INSERT INTO historial_reportes (reporte_id, accion, usuario, observacion) VALUES (?, 'Asignado a cuadrilla', ?, ?)",
-        (reporte_id, "Admin", f"Asignado a {cuadrilla['nombre']}")
-    )
-
-    if cuadrilla["estado"] == "Disponible":
-        execute("UPDATE cuadrillas SET estado = 'En ruta' WHERE id = ?", (req.cuadrilla_id,))
-    else:
-        execute("UPDATE cuadrillas SET estado = 'Ocupada' WHERE id = ?", (req.cuadrilla_id,))
-
-    return {"mensaje": f"Reporte asignado a {cuadrilla['nombre']}"}
-
-
 @router.post("/{reporte_id}/atender")
 def marcar_en_atencion(reporte_id: int, user=Depends(get_current_user_role)):
     reporte = fetch_one("SELECT id, cuadrilla_id FROM reportes WHERE id = ?", (reporte_id,))
@@ -391,20 +323,6 @@ def marcar_en_atencion(reporte_id: int, user=Depends(get_current_user_role)):
     )
     _actualizar_estado_cuadrilla(reporte_id)
     return {"mensaje": "Reporte en atención"}
-
-
-@router.post("/{reporte_id}/completar")
-def marcar_atendido(reporte_id: int, user=Depends(get_current_user_role)):
-    reporte = fetch_one("SELECT id FROM reportes WHERE id = ?", (reporte_id,))
-    if not reporte:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
-    execute("UPDATE reportes SET estado = 'Atendido' WHERE id = ?", (reporte_id,))
-    execute(
-        "INSERT INTO historial_reportes (reporte_id, accion, usuario) VALUES (?, 'Atendido', ?)",
-        (reporte_id, f"User {user['id']}")
-    )
-    _actualizar_estado_cuadrilla(reporte_id)
-    return {"mensaje": "Reporte marcado como atendido"}
 
 
 @router.post("/{reporte_id}/completar-con-evidencias")
@@ -436,72 +354,3 @@ def completar_con_evidencias(reporte_id: int, req: CompletarRequest, user=Depend
     )
     _actualizar_estado_cuadrilla(reporte_id)
     return {"mensaje": "Reporte completado con evidencias"}
-
-
-@router.post("/{reporte_id}/verificar")
-def marcar_verificado(reporte_id: int, user=Depends(require_roles("Administrador"))):
-    reporte = fetch_one("SELECT id FROM reportes WHERE id = ?", (reporte_id,))
-    if not reporte:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
-    execute("UPDATE reportes SET estado = 'Verificado' WHERE id = ?", (reporte_id,))
-    execute(
-        "INSERT INTO historial_reportes (reporte_id, accion, usuario) VALUES (?, 'Verificado', ?)",
-        (reporte_id, f"User {user['id']}")
-    )
-    _actualizar_estado_cuadrilla(reporte_id)
-    return {"mensaje": "Reporte verificado"}
-
-
-@router.post("/{reporte_id}/calcular-prioridad")
-def calcular_prioridad(reporte_id: int, respuestas: dict, user=Depends(get_current_user_role)):
-    puntaje = 0
-    criterios = []
-
-    cantidad = respuestas.get("cantidad", 0)
-    if cantidad == 1:
-        puntaje += 1
-        criterios.append("Poca basura")
-    elif cantidad == 2:
-        puntaje += 2
-        criterios.append("Varias bolsas acumuladas")
-    elif cantidad == 3:
-        puntaje += 3
-        criterios.append("Gran acumulación de basura o desmonte")
-
-    if respuestas.get("malosOlores"):
-        puntaje += 2
-        criterios.append("Malos olores")
-    if respuestas.get("animales"):
-        puntaje += 3
-        criterios.append("Presencia de animales, insectos o roedores")
-    if respuestas.get("cercania"):
-        puntaje += 3
-        criterios.append("Cercanía a viviendas, colegios, mercados, restaurantes o zonas concurridas")
-    if respuestas.get("agua"):
-        puntaje += 3
-        criterios.append("Cercanía a río, canal, acequia o área verde")
-    if respuestas.get("bloqueo"):
-        puntaje += 3
-        criterios.append("Bloqueo de vereda, pista o zona de tránsito")
-    if respuestas.get("peligroso"):
-        puntaje += 4
-        criterios.append("Residuos peligrosos o sospechosos")
-    if respuestas.get("imagenClara"):
-        puntaje += 1
-        criterios.append("Imagen clara como evidencia")
-
-    if puntaje >= 12:
-        prioridad = "Crítica"
-    elif puntaje >= 8:
-        prioridad = "Alta"
-    elif puntaje >= 4:
-        prioridad = "Media"
-    else:
-        prioridad = "Baja"
-
-    execute(
-        "UPDATE reportes SET prioridad = ?, puntaje_prioridad = ?, criterios_prioridad = ? WHERE id = ?",
-        (prioridad, puntaje, json.dumps(criterios, ensure_ascii=False), reporte_id)
-    )
-
-    return {"prioridad": prioridad, "puntaje": puntaje, "criterios": criterios}
