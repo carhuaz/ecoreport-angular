@@ -6,9 +6,45 @@
 
   <div class="alert alert-success" *ngIf="mensajeExito">{{ mensajeExito }}</div>
 
+  <!-- Filtros y controles de paginación -->
+  <div class="validacion-toolbar">
+    <div class="toolbar-left">
+      <label class="filter-label">
+        Distrito
+        <select [(ngModel)]="filtroDistrito" (change)="onFiltroDistritoChange()">
+          <option value="">Todos</option>
+          <option value="Huancayo">Huancayo</option>
+          <option value="El Tambo">El Tambo</option>
+          <option value="Chilca">Chilca</option>
+        </select>
+      </label>
+      <span class="toolbar-total" *ngIf="total > 0">
+        Mostrando {{ desde }}–{{ hasta }} de <strong>{{ total }}</strong> solicitudes
+      </span>
+    </div>
+    <div class="toolbar-right">
+      <label class="filter-label">
+        Por página
+        <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+          <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <!-- Paginación superior -->
+  <div class="paginacion" *ngIf="totalPages > 1">
+    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera página">««</button>
+    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
+    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
+    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última página">»»</button>
+  </div>
+
+  <!-- Tabla de pendientes -->
   <div *ngIf="reportes.length === 0" class="empty-state">
     <span>✅</span>
-    <p>No hay reportes pendientes de validación.</p>
+    <p>No hay reportes pendientes de validación{{ filtroDistrito ? ' en ' + filtroDistrito : '' }}.</p>
   </div>
 
   <div class="tabla-wrap" *ngIf="reportes.length > 0">
@@ -39,7 +75,7 @@
           <td><app-badge-estado [estado]="r.estado" /></td>
           <td>
             <div class="acciones">
-              <button class="btn-detalle" type="button" (click)="abrirDetalle(r)">
+              <button class="btn-detalle" (click)="abrirDetalle(r)">
                 <i class="bi bi-eye"></i> Ver detalle
               </button>
               <button class="btn-aprobar" (click)="confirmarAccion(r.id, 'aprobar')">✔ Aprobar</button>
@@ -51,6 +87,16 @@
     </table>
   </div>
 
+  <!-- Paginación inferior -->
+  <div class="paginacion" *ngIf="totalPages > 1">
+    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera página">««</button>
+    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
+    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
+    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
+    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última página">»»</button>
+  </div>
+
+  <!-- Historial de decisiones -->
   <div class="historial-section">
     <h2>Decisiones realizadas</h2>
     <p class="section-description">Las aprobaciones y rechazos permanecen guardados en este prototipo.</p>
@@ -84,6 +130,7 @@
   </div>
 </div>
 
+<!-- Modal detalle -->
 <div class="modal-overlay detail-overlay" *ngIf="modalDetalleVisible && reporteDetalle as reporte" (click)="cerrarDetalle()">
   <article class="modal detail-modal" (click)="$event.stopPropagation()">
     <div class="modal-header detail-header">
@@ -181,7 +228,7 @@
   </article>
 </div>
 
-<!-- Modal inline -->
+<!-- Modal confirmación -->
 <div class="modal-overlay" *ngIf="modalVisible" (click)="cerrarModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -192,9 +239,9 @@
       <p>{{ mensajeModal }}</p>
       <div class="form-group" *ngIf="accionPendiente === 'rechazar'">
         <label for="observacion">Observación (motivo del rechazo):</label>
-        <textarea 
-          id="observacion" 
-          [(ngModel)]="observacion" 
+        <textarea
+          id="observacion"
+          [(ngModel)]="observacion"
           rows="3"
           placeholder="Explica por qué se rechaza este reporte...">
         </textarea>
@@ -203,7 +250,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
-      <button 
+      <button
         [class]="accionPendiente === 'aprobar' ? 'btn-primary' : 'btn-danger'"
         (click)="ejecutarAccion()">
         {{ accionPendiente === 'aprobar' ? 'Aprobar' : 'Rechazar' }}

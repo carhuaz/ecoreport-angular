@@ -180,10 +180,13 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
 }
 
-.priority[data-priority="Alta"],
-.priority[data-priority="Crítica"] {
+.priority[data-priority="Alta"] {
   color: #991b1b;
   background: #fee2e2;
+}
+.priority[data-priority="Crítica"] {
+  color: #7c3aed;
+  background: #f3e8ff;
 }
 
 .empty {
