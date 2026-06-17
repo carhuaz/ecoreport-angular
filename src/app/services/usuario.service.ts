@@ -1,41 +1,25 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-import { Usuario, RolUsuario } from '../models/usuario.model';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { Usuario } from '../models/usuario.model';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class UsuarioService {
-  constructor(private authService: AuthService) {}
+  private apiUrl = environment.apiUrl;
+
+  constructor(private authService: AuthService, private http: HttpClient) {}
 
   obtenerUsuarios(): Observable<Usuario[]> {
     return this.authService.obtenerTodosLosUsuarios();
   }
 
-  obtenerUsuarioPorId(id: number): Observable<Usuario | undefined> {
-    return this.obtenerUsuarios().pipe(
-      map(users => users.find(u => u.id === id))
-    );
+  obtenerUsuariosPaginados(page: number, pageSize: number, termino?: string, rol?: string): Observable<{ items: Usuario[]; total: number; page: number; page_size: number; total_pages: number }> {
+    return this.authService.obtenerUsuariosPaginados(page, pageSize, termino, rol);
   }
 
-  buscarUsuarios(termino: string): Observable<Usuario[]> {
-    return this.obtenerUsuarios().pipe(
-      map(users => {
-        const t = termino.toLowerCase();
-        return users.filter(u =>
-          u.nombre.toLowerCase().includes(t) || u.email.toLowerCase().includes(t)
-        );
-      })
-    );
-  }
-
-  filtrarPorRol(rol: RolUsuario): Observable<Usuario[]> {
-    return this.obtenerUsuarios().pipe(
-      map(users => users.filter(u => u.rol === rol))
-    );
-  }
-
-  cambiarRolUsuario(id: number, nuevoRol: RolUsuario): Observable<boolean> {
+  cambiarRolUsuario(id: number, nuevoRol: string): Observable<boolean> {
     return this.authService.cambiarRolUsuario(id, nuevoRol);
   }
 

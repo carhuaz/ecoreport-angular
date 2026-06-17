@@ -4,21 +4,27 @@ import { FormsModule } from '@angular/forms';
 import { UsuarioService } from '../../services/usuario.service';
 import { AuthService } from '../../services/auth.service';
 import { Usuario, RolUsuario } from '../../models/usuario.model';
+import { PaginacionComponent } from '../../shared/paginacion/paginacion.component';
 
 @Component({
   selector: 'app-admin-usuarios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PaginacionComponent],
   templateUrl: './admin-usuarios.component.html',
   styleUrls: ['./admin-usuarios.component.css']
 })
 export class AdminUsuariosComponent implements OnInit {
   usuarios: Usuario[] = [];
-  usuariosFiltrados: Usuario[] = [];
 
   filtroNombre = '';
-  filtroEmail = '';
   filtroRol: RolUsuario | '' = '';
+
+  page = 1;
+  pageSize = 20;
+  total = 0;
+  totalPages = 0;
+
+  readonly pageSizes = [5, 10, 20];
 
   rolSeleccionadoModal: RolUsuario = 'Ciudadano';
   usuarioSeleccionado: Usuario | null = null;
@@ -26,6 +32,9 @@ export class AdminUsuariosComponent implements OnInit {
   mostrarConfirmacion = false;
   mensaje = '';
   mensajeEsError = false;
+
+  get desde(): number { return (this.page - 1) * this.pageSize + 1; }
+  get hasta(): number { return Math.min(this.page * this.pageSize, this.total); }
 
   constructor(
     private usuarioService: UsuarioService,
@@ -37,36 +46,40 @@ export class AdminUsuariosComponent implements OnInit {
   }
 
   cargarUsuarios(): void {
-    this.usuarioService.obtenerUsuarios().subscribe(data => {
-      this.usuarios = data;
-      this.aplicarFiltros();
+    const termino = this.filtroNombre || undefined;
+    const rol = this.filtroRol || undefined;
+    this.usuarioService.obtenerUsuariosPaginados(this.page, this.pageSize, termino, rol).subscribe(res => {
+      this.usuarios = res.items;
+      this.total = res.total;
+      this.totalPages = res.total_pages;
     });
   }
 
-  aplicarFiltros(): void {
-    let filtered = [...this.usuarios];
-
-    if (this.filtroNombre) {
-      filtered = filtered.filter(u =>
-        u.nombre.toLowerCase().includes(this.filtroNombre.toLowerCase())
-      );
-    }
-
-    if (this.filtroEmail) {
-      filtered = filtered.filter(u =>
-        u.email.toLowerCase().includes(this.filtroEmail.toLowerCase())
-      );
-    }
-
-    if (this.filtroRol) {
-      filtered = filtered.filter(u => u.rol === this.filtroRol);
-    }
-
-    this.usuariosFiltrados = filtered;
+  onFiltroChange(): void {
+    this.page = 1;
+    this.cargarUsuarios();
   }
 
-  onFiltroChange(): void {
-    this.aplicarFiltros();
+  onPageSizeChange(): void {
+    this.page = 1;
+    this.cargarUsuarios();
+  }
+
+  irPagina(p: number): void {
+    if (p < 1 || p > this.totalPages) return;
+    this.page = p;
+    this.cargarUsuarios();
+  }
+
+  paginaSiguiente(): void { this.irPagina(this.page + 1); }
+  paginaAnterior(): void { this.irPagina(this.page - 1); }
+
+  paginas(): number[] {
+    const paginas: number[] = [];
+    const inicio = Math.max(1, this.page - 2);
+    const fin = Math.min(this.totalPages, this.page + 2);
+    for (let i = inicio; i <= fin; i++) paginas.push(i);
+    return paginas;
   }
 
   abrirModalCambiarRol(usuario: Usuario): void {

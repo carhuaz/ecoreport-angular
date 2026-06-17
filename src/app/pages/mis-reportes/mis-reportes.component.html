@@ -17,25 +17,13 @@
     </label>
   </div>
 
-  <div class="paginacion" *ngIf="totalPages > 1">
-    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
-    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
-    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
-    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
-    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
-  </div>
+  <app-paginacion [page]="page" [totalPages]="totalPages" (pageChange)="irPagina($event)" />
 
   <div class="reportes-grid" *ngIf="reportes.length > 0">
     <app-card-reporte *ngFor="let r of reportes" [reporte]="r" />
   </div>
 
-  <div class="paginacion" *ngIf="totalPages > 1">
-    <button (click)="irPagina(1)" [disabled]="page === 1" title="Primera">««</button>
-    <button (click)="paginaAnterior()" [disabled]="page === 1" title="Anterior">«</button>
-    <button *ngFor="let p of paginas()" (click)="irPagina(p)" [class.active]="p === page">{{ p }}</button>
-    <button (click)="paginaSiguiente()" [disabled]="page === totalPages" title="Siguiente">»</button>
-    <button (click)="irPagina(totalPages)" [disabled]="page === totalPages" title="Última">»»</button>
-  </div>
+  <app-paginacion [page]="page" [totalPages]="totalPages" (pageChange)="irPagina($event)" />
 
   <div class="empty-state" *ngIf="total === 0">
     <p>Aún no has registrado ningún reporte.</p>

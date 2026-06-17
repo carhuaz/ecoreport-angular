@@ -5,11 +5,12 @@ import { ReporteService } from '../../services/reporte.service';
 import { Reporte } from '../../models/reporte.model';
 import { CardReporteComponent } from '../../shared/card-reporte/card-reporte.component';
 import { EcoMapComponent } from '../../shared/eco-map/eco-map.component';
+import { PaginacionComponent } from '../../shared/paginacion/paginacion.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, CardReporteComponent, EcoMapComponent],
+  imports: [CommonModule, FormsModule, CardReporteComponent, EcoMapComponent, PaginacionComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
@@ -24,7 +25,7 @@ export class DashboardComponent implements OnInit {
   porEstado: { estado: string; cantidad: number }[] = [];
   porPrioridad: { prioridad: string; cantidad: number }[] = [];
 
-  readonly pageSizes = [5, 10, 20, 50];
+  readonly pageSizes = [5, 10, 20];
 
   get desde(): number { return (this.page - 1) * this.pageSize + 1; }
   get hasta(): number { return Math.min(this.page * this.pageSize, this.total); }
