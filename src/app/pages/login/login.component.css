@@ -106,7 +106,22 @@
 }
 
 .alert-error   { background: #fee2e2; color: #dc2626; }
+.alert-warn    { background: #fef3c7; color: #92400e; }
 .alert-success { background: #dcfce7; color: #16803c; }
+.btn-link {
+  display: inline-block;
+  margin-top: 0.4rem;
+  background: #00a63e;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-link:hover { opacity: 0.85; }
 
 .demo-hint {
   margin-top: 1.25rem;
