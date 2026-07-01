@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from ..database import fetch_one, execute, execute_returning_id
 from ..schemas.auth import LoginRequest, RegisterRequest, AuthResponse, VerifyRequest
@@ -34,6 +35,9 @@ def login(req: LoginRequest):
 @router.post("/register")
 def register(req: RegisterRequest, background_tasks: BackgroundTasks):
     email = req.email.strip().lower()
+
+    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+        raise HTTPException(status_code=400, detail="Formato de correo electrónico inválido")
 
     existente = fetch_one("SELECT id, esta_verificado FROM usuarios WHERE email = ?", (email,))
     if existente:

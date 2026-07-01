@@ -31,6 +31,11 @@ export class RegisterComponent {
       return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+      this.error = 'Ingresa un correo electrónico válido.';
+      return;
+    }
+
     if (this.dni.length !== 8 || !/^\d{8}$/.test(this.dni)) {
       this.error = 'El DNI debe tener exactamente 8 dígitos numéricos.';
       return;
